@@ -2,7 +2,7 @@
   "name": "jam-mqtt",
   "version": "0.1.0",
   "description": "mqtt private message broker for jam",
-  "main": "main.js",
+  "main": "jam_mqtt_main.js",
   "scripts": {
     "test": "node main.js"
   },
