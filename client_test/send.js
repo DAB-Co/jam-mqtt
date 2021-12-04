@@ -1,43 +1,26 @@
 let mqtt = require('mqtt');
-/*const argv = require("yargs")(process.argv.slice(2))
-    .option("ip", {
-        description: "ip address or domain of server",
-        type: "string",
-        demandOption: true,
-    })
-    .option("port", {
-        description: "port to bind",
-        type: "string",
-        demandOption: true,
-    })
-    .help().alias("help", "h")
-    .parse();
-const options = {
-    host: argv.host,
-    port: argv.port,
-    clean: false,
-    clientId: "user1"
-}
- */
+
+let from = "username"
+let to = "username"
 
 const options = {
-    host: "rocketdodgegame.com",
-    port: "41371",
+    host: "localhost",
+    port: "80",
     clean: false,
-    clientId: 'patrick@bateman.com:pc',
-    username: "patrick@bateman.com",
-    password: ""
+    clientId: `${from}:1768209775a80e7c`,
+    username: from,
+    password: "password",
 }
 
 const client = mqtt.connect(options);
 
 client.on('connect', function () {
     let message = {
-        "from": "patrick@bateman.com",
-        "timestamp": "2022-11-26 06:01:12.685Z",
-        "content": "let's see paul allen's card"
+        "from": from,
+        "timestamp": "2021-11-26 06:01:12.685Z",
+        "content": "ilk"
     }
-    client.publish("/paul@allen.com/inbox", JSON.stringify(message), {qos: 2});
+    client.publish(`/${to}/inbox`, JSON.stringify(message), {qos: 2});
     console.log("message sent");
     client.end();
 });
