@@ -81,6 +81,7 @@ aedes.authorizePublish = function (client, packet, callback) {
         .catch(error => {
             console.log(error);
         });
+    callback(null);
 }
 
 aedes.authorizeSubscribe = function (client, sub, callback) {
