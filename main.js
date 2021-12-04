@@ -56,13 +56,13 @@ aedes.authenticate = function (client, username, password, callback) {
     }
 }
 
-aedes.authorizePublish = async function (client, packet, callback) {
+aedes.authorizePublish = function (client, packet, callback) {
     // https://github.com/arden/aedes#instanceauthorizepublishclient-packet-doneerr
     let receiver = packet.topic.split("/")[1];
     let sender = client.id.split(":")[0];
     console.log("receiver: " + receiver);
     console.log("sender: " + sender);
-    let token = await accountUtils.getNotificationToken(receiver);
+    let token = accountUtils.getNotificationToken(receiver);
     if (token == null) return;
     const message = {
         notification: {

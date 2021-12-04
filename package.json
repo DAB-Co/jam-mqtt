@@ -17,7 +17,7 @@
   },
   "homepage": "https://github.com/DAB-Co/jam-mqtt#readme",
   "dependencies": {
-    "@dab-co/jam-sqlite": "^1.6.11",
+    "@dab-co/jam-sqlite": "^1.6.13",
     "aedes": "^0.46.1",
     "bcrypt": "^5.0.1",
     "dotenv": "^10.0.0",
