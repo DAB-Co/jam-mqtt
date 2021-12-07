@@ -1,37 +1,19 @@
 let mqtt = require('mqtt');
-/*const argv = require("yargs")(process.argv.slice(2))
-    .option("ip", {
-        description: "ip address or domain of server",
-        type: "string",
-        demandOption: true,
-    })
-    .option("port", {
-        description: "port to bind",
-        type: "string",
-        demandOption: true,
-    })
-    .help().alias("help", "h")
-    .parse();
-const options = {
-    host: argv.host,
-    port: argv.port,
-    clean: false,
-    clientId: "user2"
-}
- */
+
+let me = "username"
 
 const options = {
-    host: "rocketdodgegame.com",
-    port: "41371",
+    host: "localhost",
+    port: "80",
     clean: false,
-    clientId: 'patrick@bateman.com:pc',
-    username: "patrick@bateman.com",
-    password: ""
+    clientId: `${me}:1768209775a80e7c`,
+    username: me,
+    password: "password",
 }
 let client = mqtt.connect(options);
 
 client.on('connect', function () {
-    client.subscribe({"/patrick@bateman.com/inbox": {qos:2}});
+    client.subscribe(`/${me}/inbox`, {qos:2});
 });
 
 client.on('message', function (topic, message) {

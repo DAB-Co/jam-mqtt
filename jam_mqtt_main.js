@@ -1,17 +1,9 @@
 const fs = require('fs');
 const path = require("path");
 const aedes = require('aedes')();
+require("dotenv").config({ path: path.join(__dirname, ".env.local") });
+const admin = require('./firebase-config').admin;
 const argv = require("yargs")(process.argv.slice(2))
-    .option("port", {
-        description: "port to bind",
-        type: "number",
-        demandOption: true,
-    })
-    .option("database", {
-        description: "path to database file",
-        type: "string",
-        demandOption: true,
-    })
     .option("tls", {
         description: "folder with cert.pem and privkey.pem",
         type: "string",
@@ -21,12 +13,12 @@ const argv = require("yargs")(process.argv.slice(2))
     .parse();
 
 const Database = require("@dab-co/jam-sqlite").Database;
-const database = new Database(argv.database);
+const database = new Database(process.env.db_path);
 const AccountUtils = require("@dab-co/jam-sqlite").Utils.AccountUtils;
 const accountUtils = new AccountUtils(database);
 const bcrypt = require("bcrypt");
 
-const port = argv.port;
+const port = process.env.port;
 let server = null;
 
 if (argv.tls) {
@@ -50,7 +42,7 @@ aedes.authenticate = function (client, username, password, callback) {
         callback(error, null);
     }
     else {
-        bcrypt.compare(password, accountUtils.getPassword(username), function (err, result) {
+        bcrypt.compare(password, accountUtils.getPasswordFromUsername(username), function (err, result) {
             if (result) {
                 console.log(`connected: ${username}: ${client.id}`);
                 callback(null, true);
@@ -64,9 +56,33 @@ aedes.authenticate = function (client, username, password, callback) {
     }
 }
 
-/*aedes.authorizePublish = function (client, packet, callback) {
+aedes.authorizePublish = function (client, packet, callback) {
     // https://github.com/arden/aedes#instanceauthorizepublishclient-packet-doneerr
-}*/
+    let receiver = packet.topic.split("/")[1];
+    let sender = client.id.split(":")[0];
+    console.log("receiver: " + receiver);
+    console.log("sender: " + sender);
+    let token = accountUtils.getNotificationToken(receiver);
+    if (token == null) return;
+    const message = {
+        notification: {
+            title: `You have messages from ${sender}!`,
+            //body: "body",
+        },
+    };
+    const options = {
+        priority: "high",
+        timeToLive: 60 * 60 * 24,
+    };
+    admin.messaging().sendToDevice(token, message, options)
+        .then(response => {
+            console.log(response);
+        })
+        .catch(error => {
+            console.log(error);
+        });
+    callback(null);
+}
 
 aedes.authorizeSubscribe = function (client, sub, callback) {
     // https://github.com/arden/aedes#instanceauthorizesubscribeclient-pattern-doneerr-pattern

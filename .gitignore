@@ -99,4 +99,5 @@ modules.xml
 sqlite/
 node_modules
 output
-
+.env.local
+jam-app-service-account-key.json
