@@ -5,8 +5,8 @@ require("dotenv").config({ path: path.join(__dirname, ".env.local") });
 const admin = require('./firebase-config').admin;
 const argv = require("yargs")(process.argv.slice(2))
     .option("tls", {
-        description: "folder with cert.pem and privkey.pem",
-        type: "string",
+        description: "run with tls",
+        type: "boolean",
         default: false
     })
     .help().alias("help", "h")
@@ -23,8 +23,8 @@ let server = null;
 
 if (argv.tls) {
     const options = {
-        cert: fs.readFileSync(path.join(argv.tls, "cert.pem")),
-        key: fs.readFileSync(path.join(argv.tls, "privkey.pem"))
+        cert: fs.readFileSync(path.join(process.env.tls_cert, "cert.pem")),
+        key: fs.readFileSync(path.join(process.env.tls_key))
     };
 
     server = require('tls').createServer(options, aedes.handle);
@@ -62,8 +62,10 @@ aedes.authorizePublish = function (client, packet, callback) {
     let sender = client.id.split(":")[0];
     console.log("receiver: " + receiver);
     console.log("sender: " + sender);
-    let token = accountUtils.getNotificationToken(receiver);
-    if (token == null) return;
+    let token = accountUtils.getNotificationTokenByUsername(receiver);
+    if (token === undefined) {
+        return callback(new Error('no token'));
+    }
     const message = {
         notification: {
             title: `You have messages from ${sender}!`,
@@ -98,10 +100,6 @@ aedes.authorizeSubscribe = function (client, sub, callback) {
         callback(error, null);
     }
 }
-
-/*aedes.authorizeForward = function (clientId, packet) {
-    //https://github.com/arden/aedes#instanceauthorizeforwardclientid-packet
-}*/
 
 server.listen(port, function () {
     console.log('Server started and listening on port ', port);
