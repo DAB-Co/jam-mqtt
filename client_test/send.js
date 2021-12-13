@@ -1,16 +1,16 @@
 let mqtt = require('mqtt');
 
-let from = "username"
-let to = "username"
+let from = "test_user0"
+let to = "test_user1"
 
 const options = {
-    host: "localhost",
-    port: "80",
+    host: "rocketdodgegame.com",
+    port: "41371",
     clean: false,
     clientId: `${from}:1768209775a80e7c`,
     username: from,
-    password: "password",
-    protocol: 'mqtts'
+    password: "12345678",
+    //protocol: 'mqtts'
 }
 
 const client = mqtt.connect(options);
