@@ -9,6 +9,7 @@ const options = {
     clientId: `${me}:1768209775a80e7c`,
     username: me,
     password: "password",
+    protocol: 'mqtts'
 }
 let client = mqtt.connect(options);
 
