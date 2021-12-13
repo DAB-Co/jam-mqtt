@@ -23,8 +23,8 @@ let server = null;
 
 if (argv.tls) {
     const options = {
-        cert: fs.readFileSync(path.join(process.env.tls_cert, "cert.pem")),
-        key: fs.readFileSync(path.join(process.env.tls_key))
+        cert: fs.readFileSync(process.env.tls_cert),
+        key: fs.readFileSync(process.env.tls_key)
     };
 
     server = require('tls').createServer(options, aedes.handle);
