@@ -35,6 +35,13 @@ else {
 
 aedes.authenticate = function (client, username, password, callback) {
     // https://github.com/arden/aedes#instanceauthenticateclient-username-password-doneerr-successful
+    if (client.id.split(":")[0] != username) {
+        console.log("client id and username doesn't match");
+        console.log(`client id: ${client.id}, username: ${username}`);
+        let error = new Error("Auth error");
+        error.returnCode = 4;
+        callback(error, null);
+    }
     if (!accountUtils.usernameExists(username)) {
         console.log(`unknown username: ${username}: ${client.id}`);
         let error = new Error("Auth error");
