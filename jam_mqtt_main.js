@@ -22,7 +22,16 @@ const accountUtils = new AccountUtils(database);
 const bcrypt = require("bcrypt");
 
 const port = process.env.port;
-const firebase_admin = argv.no_notification ? undefined : require('./firebase-config').admin;
+
+let firebase_admin = undefined;
+if (!argv.no_notification) {
+    firebase_admin = require("firebase-admin");
+    const service_account_key = JSON.parse(fs.readFileSync(process.env.firebase_account_key_path, "utf8"));
+    firebase_admin.initializeApp({
+        credential: firebase_admin.credential.cert(service_account_key),
+    });
+}
+
 
 let server = null;
 
