@@ -1,12 +1,15 @@
 const fs = require('fs');
 const path = require("path");
 const aedes = require('aedes')();
-require("dotenv").config({ path: path.join(__dirname, ".env.local") });
-const admin = require('./firebase-config').admin;
+require("dotenv").config({path: path.join(__dirname, ".env.local")});
 const argv = require("yargs")(process.argv.slice(2))
     .option("tls", {
-        description: "folder with cert.pem and privkey.pem",
-        type: "string",
+        type: "boolean",
+        default: false
+    })
+    .option("no_notification", {
+        description: "don't send notification token",
+        type: "boolean",
         default: false
     })
     .help().alias("help", "h")
@@ -19,36 +22,35 @@ const accountUtils = new AccountUtils(database);
 const bcrypt = require("bcrypt");
 
 const port = process.env.port;
+const firebase_admin = argv.no_notification ? undefined : require('./firebase-config').admin;
+
 let server = null;
 
 if (argv.tls) {
     const options = {
-        cert: fs.readFileSync(path.join(argv.tls, "cert.pem")),
-        key: fs.readFileSync(path.join(argv.tls, "privkey.pem"))
+        cert: fs.readFileSync(process.env.tls_cert_path),
+        key: fs.readFileSync(process.env.tls_privkey_path)
     };
 
     server = require('tls').createServer(options, aedes.handle);
-}
-else {
+} else {
     server = require('net').createServer(aedes.handle)
 }
 
 aedes.authenticate = function (client, username, password, callback) {
     // https://github.com/arden/aedes#instanceauthenticateclient-username-password-doneerr-successful
-    if (client.id.split(":")[0] != username) {
+    if (client.id.split(":")[0] !== username) {
         console.log("client id and username doesn't match");
         console.log(`client id: ${client.id}, username: ${username}`);
         let error = new Error("Auth error");
         error.returnCode = 4;
         callback(error, null);
-    }
-    if (!accountUtils.usernameExists(username)) {
+    } else if (!accountUtils.usernameExists(username)) {
         console.log(`unknown username: ${username}: ${client.id}`);
         let error = new Error("Auth error");
         error.returnCode = 4;
         callback(error, null);
-    }
-    else {
+    } else {
         bcrypt.compare(password, accountUtils.getPasswordFromUsername(username), function (err, result) {
             if (result) {
                 console.log(`connected: ${username}: ${client.id}`);
@@ -81,13 +83,15 @@ aedes.authorizePublish = function (client, packet, callback) {
         priority: "high",
         timeToLive: 60 * 60 * 24,
     };
-    admin.messaging().sendToDevice(token, message, options)
-        .then(response => {
-            console.log(response);
-        })
-        .catch(error => {
-            console.log(error);
-        });
+    if (firebase_admin !== undefined) {
+        firebase_admin.messaging().sendToDevice(token, message, options)
+            .then(response => {
+                console.log(response);
+            })
+            .catch(error => {
+                console.log(error);
+            });
+    }
     callback(null);
 }
 
@@ -97,8 +101,7 @@ aedes.authorizeSubscribe = function (client, sub, callback) {
     if (client.id.split(':')[0] === sub.topic.split('/')[1]) {
         console.log("subbed");
         callback(null, sub);
-    }
-    else {
+    } else {
         console.log("error");
         let error = new Error("Auth error");
         error.returnCode = 4;
