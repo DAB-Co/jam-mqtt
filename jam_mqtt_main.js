@@ -75,8 +75,9 @@ aedes.authorizePublish = function (client, packet, callback) {
     // https://github.com/arden/aedes#instanceauthorizepublishclient-packet-doneerr
     let receiver = packet.topic.split("/")[1];
     let sender = client.id.split(":")[0];
-    console.log("receiver: " + receiver);
+    console.log("publishing content...");
     console.log("sender: " + sender);
+    console.log("receiver: " + receiver);
     let token = accountUtils.getNotificationTokenByUsername(receiver);
     if (token === undefined) {
         return callback(new Error('no token'));
