@@ -1,5 +1,6 @@
 let mqtt = require('mqtt');
 const path = require("path");
+const crypto = require("crypto");
 require("dotenv").config({ path: path.join(__dirname, ".env.local") });
 
 const from = "sender"
