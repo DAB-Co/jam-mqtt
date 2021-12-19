@@ -1,0 +1,7 @@
+As far as I understand, .csr is the file used
+to sign the final public certificate which is .crt.
+
+.key is the private key.
+
+see create openssl_tls.sh for example.
+

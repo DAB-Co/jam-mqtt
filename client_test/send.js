@@ -1,11 +1,13 @@
 let mqtt = require('mqtt');
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env.local") });
 
 let from = "test_user0"
 let to = "test_user1"
 
 const options = {
-    host: "rocketdodgegame.com",
-    port: "41371",
+    host: process.env.ip,
+    port: process.env.port,
     clean: false,
     clientId: `${from}:1768209775a80e7c`,
     username: from,
