@@ -1,15 +1,16 @@
 let mqtt = require('mqtt');
 const path = require("path");
+const crypto = require("crypto");
 require("dotenv").config({ path: path.join(__dirname, ".env.local") });
 
-let me = "test_user1"
+const USERNAME = "receiver"
 
 const options = {
     host: process.env.ip,
     port: process.env.port,
     clean: false,
-    clientId: `${me}:1768209775a80e7c`,
-    username: me,
+    clientId: `${USERNAME}:${crypto.randomBytes(16).toString('hex')}`,
+    username: USERNAME,
     password: "12345678",
     //protocol: 'mqtts'
 }
@@ -17,7 +18,7 @@ const options = {
 let client = mqtt.connect(options);
 
 client.on('connect', function () {
-    client.subscribe(`/${me}/inbox`, {qos:2});
+    client.subscribe(`/${USERNAME}/inbox`, {qos:2});
 });
 
 client.on('message', function (topic, message) {
