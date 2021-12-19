@@ -2,10 +2,14 @@ const fs = require('fs');
 const path = require("path");
 const aedes = require('aedes')();
 require("dotenv").config({ path: path.join(__dirname, ".env.local") });
-const admin = require('./firebase-config').admin;
 const argv = require("yargs")(process.argv.slice(2))
     .option("tls", {
         description: "run with tls",
+        type: "boolean",
+        default: false
+    })
+    .option("no_notification", {
+        description: "don't send notification token",
         type: "boolean",
         default: false
     })
@@ -19,6 +23,17 @@ const accountUtils = new AccountUtils(database);
 const bcrypt = require("bcrypt");
 
 const port = process.env.port;
+
+let firebase_admin = undefined;
+if (!argv.no_notification) {
+    firebase_admin = require("firebase-admin");
+    const service_account_key = JSON.parse(fs.readFileSync(process.env.firebase_account_key_path, "utf8"));
+    firebase_admin.initializeApp({
+        credential: firebase_admin.credential.cert(service_account_key),
+    });
+}
+
+
 let server = null;
 
 if (argv.tls) {
@@ -76,20 +91,28 @@ aedes.authorizePublish = function (client, packet, callback) {
         priority: "high",
         timeToLive: 60 * 60 * 24,
     };
-    admin.messaging().sendToDevice(token, message, options)
-        .then(response => {
-            console.log(response);
-        })
-        .catch(error => {
-            console.log(error);
-        });
+    if (firebase_admin !== undefined) {
+        firebase_admin.messaging().sendToDevice(token, message, options)
+            .then(response => {
+                console.log(response);
+            })
+            .catch(error => {
+                console.log(error);
+            });
+    }
     callback(null);
 }
 
 aedes.authorizeSubscribe = function (client, sub, callback) {
     // https://github.com/arden/aedes#instanceauthorizesubscribeclient-pattern-doneerr-pattern
     console.log(client.id, "subscribing to", sub.topic);
-    if (client.id.split(':')[0] === sub.topic.split('/')[1]) {
+    if (client.id.split(":")[0] !== username) {
+        console.log("client id and username doesn't match");
+        console.log(`client id: ${client.id}, username: ${username}`);
+        let error = new Error("Auth error");
+        error.returnCode = 4;
+        callback(error, null);
+    } else if (client.id.split(':')[0] === sub.topic.split('/')[1]) {
         console.log("subbed");
         callback(null, sub);
     }
