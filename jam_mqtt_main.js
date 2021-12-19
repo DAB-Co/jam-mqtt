@@ -111,7 +111,7 @@ aedes.authorizeSubscribe = function (client, sub, callback) {
         callback(null, sub);
     }
     else {
-        console.log("error");
+        console.log("sub error");
         let error = new Error("Auth error");
         error.returnCode = 4;
         callback(error, null);

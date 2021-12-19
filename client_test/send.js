@@ -10,7 +10,7 @@ const options = {
     host: process.env.ip,
     port: process.env.port,
     clean: false,
-    clientId: `${from}:${crypto.randomBytes(16).toString('hex')}`,
+    clientId: `${from}:${crypto.randomBytes(4).toString('hex')}`,
     username: from,
     password: "12345678",
     //protocol: 'mqtts'
