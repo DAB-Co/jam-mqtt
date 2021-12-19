@@ -106,13 +106,7 @@ aedes.authorizePublish = function (client, packet, callback) {
 aedes.authorizeSubscribe = function (client, sub, callback) {
     // https://github.com/arden/aedes#instanceauthorizesubscribeclient-pattern-doneerr-pattern
     console.log(client.id, "subscribing to", sub.topic);
-    if (client.id.split(":")[0] !== username) {
-        console.log("client id and username doesn't match");
-        console.log(`client id: ${client.id}, username: ${username}`);
-        let error = new Error("Auth error");
-        error.returnCode = 4;
-        callback(error, null);
-    } else if (client.id.split(':')[0] === sub.topic.split('/')[1]) {
+    if (client.id.split(':')[0] === sub.topic.split('/')[1]) {
         console.log("subbed");
         callback(null, sub);
     }
