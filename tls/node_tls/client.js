@@ -2,13 +2,12 @@ const tls = require('tls');
 const fs = require('fs');
 const path = require("path");
 
-//process.env.NODE_TLS_REJECT_UNAUTHORIZED='0';
-
 let options = {
-    hostname: "10.185.248.64",
+    hostname: "localhost",
     key: fs.readFileSync(path.join(__dirname, "..", "certs", "client_0", "client.key")),
     cert: fs.readFileSync(path.join(__dirname, "..", "certs", "client_0", "client.crt")),
-    //ca: fs.readFileSync(path.join(__dirname, "..", "certs", "ca", "ca.crt"))
+    //ca: fs.readFileSync(path.join(__dirname, "..", "certs", "ca", "ca.crt")),
+    //rejectUnauthorized: false,
 };
 
 let conn = tls.connect(8000, options, function () {

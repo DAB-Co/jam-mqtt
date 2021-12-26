@@ -11,7 +11,7 @@ rm -rf certs
 mkdir certs
 cd certs
 mkdir ca
-cd ca/
+cd ca
 echo "creating ca"
 openssl req -new -x509 -nodes -extensions v3_ca -keyout ca.key -out ca.crt
 cd ..
