@@ -15,8 +15,10 @@ const options = {
     username: from,
     password: "12345678",
     protocol: 'mqtts',
-    cert: fs.readFileSync(path.join(__dirname, "../tls/certs/client_1/client.crt"), "utf-8"),
-    key:  fs.readFileSync(path.join(__dirname, "../tls/certs/client_1/client.key"), "utf-8"),
+    rejectUnauthorized: false,
+    cert: fs.readFileSync(process.env.client_1_cert),
+    key:  fs.readFileSync(process.env.client_1_key),
+    //ca: fs.readFileSync(process.env.ca_cert)
 }
 
 const client = mqtt.connect(options);
