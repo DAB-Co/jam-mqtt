@@ -77,9 +77,10 @@ aedes.authenticate = function (client, user_id, password, callback) {
 aedes.authorizePublish = function (client, packet, callback) {
     // https://github.com/arden/aedes#instanceauthorizepublishclient-packet-doneerr
     let receiver = packet.topic.split("/")[1];
-    let sender;
+    let sender = client.id.split(":")[0];
+    let senderName;
     try {
-        sender = JSON.parse(packet.payload.toString()).from;
+        senderName = JSON.parse(packet.payload.toString()).from;
     } catch(e) {
         console.log(e);
     }
@@ -94,7 +95,7 @@ aedes.authorizePublish = function (client, packet, callback) {
         }
         const message = {
             notification: {
-                title: `You have messages from ${sender}!`,
+                title: `You have messages from ${senderName}!`,
                 //body: "body",
             },
         };
