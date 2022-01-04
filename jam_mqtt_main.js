@@ -57,7 +57,7 @@ aedes.authenticate = function (client, user_id, api_token, callback) {
         error.returnCode = 4;
         callback(error, null);
     } else {
-        if (api_token.toString() === correct_api_token) {
+        if (api_token.toString() !== "" && api_token.toString() !== null && api_token.toString() !== undefined && api_token.toString() === correct_api_token) {
             console.log(`connected: ${user_id}: ${client.id}`);
             callback(null, true);
         } else {
