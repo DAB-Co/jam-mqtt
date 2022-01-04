@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require("path");
 const aedes = require('aedes')();
-require("dotenv").config({ path: path.join(__dirname, ".env.local") });
+require("dotenv").config({path: path.join(__dirname, ".env.local")});
 const argv = require("yargs")(process.argv.slice(2))
     .option("tls", {
         description: "run with tls",
@@ -22,7 +22,6 @@ const AccountUtils = require("@dab-co/jam-sqlite").Utils.AccountUtils;
 const accountUtils = new AccountUtils(database);
 const UserFriendsUtils = require("@dab-co/jam-sqlite").Utils.UserFriendsUtils;
 const userFriendsUtils = new UserFriendsUtils(database);
-const bcrypt = require("bcrypt");
 
 const port = process.env.port;
 
@@ -45,32 +44,28 @@ if (argv.tls) {
     };
 
     server = require('tls').createServer(options, aedes.handle);
-}
-else {
+} else {
     server = require('net').createServer(aedes.handle)
 }
 
-aedes.authenticate = function (client, user_id, password, callback) {
+aedes.authenticate = function (client, user_id, api_token, callback) {
     // https://github.com/arden/aedes#instanceauthenticateclient-username-password-doneerr-successful
-    let user_password_hash = accountUtils.getPassword(user_id);
-    if (user_password_hash === undefined) {
+    let correct_api_token = accountUtils.getApiToken(user_id);
+    if (correct_api_token === undefined) {
         console.log(`unknown user_id: ${user_id}: ${client.id}`);
         let error = new Error("Auth error");
         error.returnCode = 4;
         callback(error, null);
-    }
-    else {
-        bcrypt.compare(password, user_password_hash, function (err, result) {
-            if (result) {
-                console.log(`connected: ${user_id}: ${client.id}`);
-                callback(null, true);
-            } else {
-                console.log(`wrong password: ${user_id}: ${client.id}`);
-                let error = new Error("Auth error");
-                error.returnCode = 4;
-                callback(error, null);
-            }
-        });
+    } else {
+        if (api_token.toString() === correct_api_token) {
+            console.log(`connected: ${user_id}: ${client.id}`);
+            callback(null, true);
+        } else {
+            console.log(`wrong password: ${user_id}: ${client.id}`);
+            let error = new Error("Auth error");
+            error.returnCode = 4;
+            callback(error, null);
+        }
     }
 }
 
@@ -81,7 +76,7 @@ aedes.authorizePublish = function (client, packet, callback) {
     let senderName;
     try {
         senderName = JSON.parse(packet.payload.toString()).from;
-    } catch(e) {
+    } catch (e) {
         console.log(e);
     }
     console.log("publishing content...");
@@ -113,8 +108,7 @@ aedes.authorizePublish = function (client, packet, callback) {
                 });
         }
         callback(null);
-    }
-    else {
+    } else {
         console.log(sender, "not friends with", receiver);
         let error = new Error("Auth error");
         error.returnCode = 5;
@@ -129,8 +123,7 @@ aedes.authorizeSubscribe = function (client, sub, callback) {
     if (client.id.split(':')[0] === sub.topic.split('/')[1]) {
         console.log("subbed");
         callback(null, sub);
-    }
-    else {
+    } else {
         console.log("sub error");
         let error = new Error("Auth error");
         error.returnCode = 4;

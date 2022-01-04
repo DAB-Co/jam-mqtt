@@ -12,7 +12,7 @@ const options = {
     clean: false,
     clientId: `${USERNAME}:${crypto.randomBytes(4).toString('hex')}`,
     username: USERNAME,
-    password: "12345678",
+    password: "api_token",
     //protocol: 'mqtts',
     //rejectUnauthorized: false,
     //cert: fs.readFileSync(process.env.client_0_cert),
