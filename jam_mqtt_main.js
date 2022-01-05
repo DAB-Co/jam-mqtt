@@ -77,7 +77,7 @@ aedes.authorizePublish = function (client, packet, callback) {
     try {
         senderName = JSON.parse(packet.payload.toString()).from;
     } catch (e) {
-        console.log(e);
+        console.log(packet.payload.toString());
     }
     console.log("publishing content...");
     console.log("sender: " + sender);
