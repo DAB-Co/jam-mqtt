@@ -1,7 +1,6 @@
 let mqtt = require('mqtt');
 const fs = require("fs");
 const path = require("path");
-const crypto = require("crypto");
 require("dotenv").config({ path: path.join(__dirname, ".env.local") });
 
 const from = "1"
@@ -11,7 +10,7 @@ const options = {
     host: process.env.ip,
     port: process.env.port,
     clean: false,
-    clientId: `${from}:${crypto.randomBytes(4).toString('hex')}`,
+    clientId: `${from}:unique${from}`,
     username: from,
     password: "api_token",
     //protocol: 'mqtts',
@@ -30,13 +29,5 @@ client.on('connect', function () {
     }
     client.publish(`/${to}/inbox`, JSON.stringify(message), {qos: 2});
     console.log("message sent");
-    //client.end();
-});
-
-
-
-setTimeout(function() {
-    console.log(client.connected);
     client.end();
-}, 2000);
-
+});

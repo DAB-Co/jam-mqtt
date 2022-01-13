@@ -57,13 +57,14 @@ aedes.authenticate = function (client, user_id, api_token, callback) {
         error.returnCode = 4;
         callback(error, null);
     } else {
-        if (api_token.toString() !== "" && api_token.toString() !== null && api_token.toString() !== undefined && api_token.toString() === correct_api_token) {
+        if (api_token.toString() !== "" && api_token.toString() !== null && api_token.toString() !== undefined
+            && api_token.toString() === correct_api_token && user_id === client.id.split(':')[0]) {
             console.log(`connected: ${user_id}: ${client.id}`);
             callback(null, true);
         } else {
-            console.log(`wrong password: ${user_id}: ${client.id}`);
+            console.log(`wrong password, username or client id: ${user_id}: ${client.id}`);
             let error = new Error("Auth error");
-            error.returnCode = 4;
+            error.returnCode = 5;
             callback(error, null);
         }
     }
@@ -71,26 +72,36 @@ aedes.authenticate = function (client, user_id, api_token, callback) {
 
 aedes.authorizePublish = function (client, packet, callback) {
     // https://github.com/arden/aedes#instanceauthorizepublishclient-packet-doneerr
-    let receiver = packet.topic.split("/")[1];
-    let sender = client.id.split(":")[0];
-    let senderName;
+    let receiver_id = packet.topic.split("/")[1];
+    let user_id = client.id.split(":")[0];
+    let senderId;
     try {
-        senderName = JSON.parse(packet.payload.toString()).from;
+        senderId = JSON.parse(packet.payload.toString()).from;
     } catch (e) {
-        console.log(packet.payload.toString());
+        console.log("unable to parse, maybe a will message?");
+        return callback(null);
     }
     console.log("publishing content...");
-    console.log("sender: " + sender);
-    console.log("receiver: " + receiver);
-    let receiverFriends = userFriendsUtils.getFriends(receiver);
-    if (receiverFriends !== undefined && sender in receiverFriends && !receiverFriends[sender]["blocked"]) {
-        let token = accountUtils.getNotificationToken(receiver);
+    console.log("sender_id: " + user_id);
+    console.log("receiver_id: " + receiver_id);
+    console.log("content:", packet.payload.toString());
+
+    if (senderId !== user_id) {
+        console.log("wrong senderId:", senderId);
+        let error = new Error("Auth error");
+        error.returnCode = 5;
+        return callback(error);
+    }
+
+    let receiverFriends = userFriendsUtils.getFriends(receiver_id);
+    if (receiverFriends !== undefined && user_id in receiverFriends && !receiverFriends[user_id]["blocked"]) {
+        let token = accountUtils.getNotificationToken(receiver_id);
         if (token === undefined) {
             return callback(new Error('no token'));
         }
         const message = {
             notification: {
-                title: `You have messages from ${senderName}!`,
+                title: `You have messages from ${accountUtils.getUsernameById(user_id)}!`,
                 //body: "body",
             },
         };
@@ -109,12 +120,11 @@ aedes.authorizePublish = function (client, packet, callback) {
         }
         callback(null);
     } else {
-        console.log(sender, "not friends with", receiver);
+        console.log(user_id, "not friends with", receiver_id);
         let error = new Error("Auth error");
         error.returnCode = 5;
-        callback(error, null);
+        callback(error);
     }
-
 }
 
 aedes.authorizeSubscribe = function (client, sub, callback) {
@@ -126,7 +136,7 @@ aedes.authorizeSubscribe = function (client, sub, callback) {
     } else {
         console.log("sub error");
         let error = new Error("Auth error");
-        error.returnCode = 4;
+        error.returnCode = 5;
         callback(error, null);
     }
 }
