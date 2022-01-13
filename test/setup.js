@@ -36,5 +36,4 @@ function register_accounts(database, count) {
 module.exports = {
     create_database: create_database,
     register_accounts: register_accounts,
-    jam_sqlite: jam_sqlite,
 }
