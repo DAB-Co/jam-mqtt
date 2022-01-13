@@ -4,7 +4,7 @@
   "description": "mqtt private message broker for jam",
   "main": "jam_mqtt_main.js",
   "scripts": {
-    "test": "echo 'port=41371' > .env.local && echo 'db_path=sqlite/database.db' >> .env.local && bash run.sh && ((mocha --recursive --exit && bash kill.sh) || (echo --output file-- && cat output && bash kill.sh))"
+    "test": "echo 'port=41371' > .env.local && echo 'db_path=sqlite/database.db' >> .env.local && node test/create_database.js && bash run.sh && ((mocha --recursive --exit && bash kill.sh) || (echo --output file-- && cat output && bash kill.sh))"
   },
   "repository": {
     "type": "git",
