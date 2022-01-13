@@ -30,3 +30,8 @@ client.on('message', function (topic, message) {
     let context = message.toString();
     console.log(context);
 });
+
+setTimeout(function() {
+    console.log(client.connected);
+    client.end();
+}, 2000);

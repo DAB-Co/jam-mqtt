@@ -1,6 +1,8 @@
 const Database = require("@dab-co/jam-sqlite").Database;
 const path = require("path");
-const database = new Database(path.join(__dirname, "../../jam-server/sqlite/database.db"));
+const db_path = path.join(__dirname, "..", "sqlite", "database.db");
+require("@dab-co/jam-sqlite").database_scripts.overwrite_database(db_path);
+const database = new Database(db_path);
 const AccountUtils = require("@dab-co/jam-sqlite").Utils.AccountUtils;
 const accountUtils = new AccountUtils(database);
 const UserFriendUtils = require("@dab-co/jam-sqlite").Utils.UserFriendsUtils;
