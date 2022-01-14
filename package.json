@@ -4,7 +4,7 @@
   "description": "mqtt private message broker for jam",
   "main": "jam_mqtt_main.js",
   "scripts": {
-    "test": "node main.js"
+    "test": "echo 'port=41371' > .env.local && echo 'db_path=sqlite/database.db' >> .env.local && node test/create_database.js && bash run.sh && ((mocha --recursive --exit && bash kill.sh) || (echo --output file-- && cat output && bash kill.sh))"
   },
   "repository": {
     "type": "git",
@@ -20,10 +20,11 @@
     "@dab-co/jam-sqlite": "^3.1.1",
     "aedes": "^0.46.1",
     "dotenv": "^10.0.0",
-    "firebase-admin": "^10.0.0",
+    "firebase-admin": "^10.0.1",
     "yargs": "^17.3.0"
   },
   "devDependencies": {
+    "mocha": "^9.1.3",
     "mqtt": "^4.2.8"
   }
 }
