@@ -3,30 +3,41 @@ const assert = require("assert");
 const setup = require(path.join(__dirname, "setup.js"));
 const mqtt = require('mqtt');
 
+const UserFriendsUtils = require("@dab-co/jam-sqlite").Utils.UserFriendsUtils;
+
 describe(__filename, function () {
     let database = undefined;
     let accounts = undefined;
     let client1 = undefined;
     let client2 = undefined;
-    this.timeout(5000);
+    this.timeout(2000);
+    const connect_timeout = 1000;
     before(function () {
         database = setup.create_database();
         accounts = setup.register_accounts(database);
     });
 
-    after(function () {
-        if (client1 !== undefined) {
-            client1.end();
-        }
-
-        if (client2 !== undefined) {
-            client2.end();
-        }
-    });
-
     describe("", function() {
-        it("client 1 can't login with wrong api token", function() {
-
+        it("client 1 can't login with wrong api token", function(done) {
+            let options = {
+                host: "localhost",
+                port: "41371",
+                clean: false,
+                clientId: `1:unique1`,
+                username: '1',
+                password: "wrong_api_token",
+            }
+            client1 = mqtt.connect(options);
+            let connectCallbackRan = false;
+            client1.on('connect', function () {
+                connectCallbackRan = true;
+                client1.end();
+            });
+            setTimeout(function () {
+                client1.end();
+                assert.ok(!connectCallbackRan);
+                done();
+            }, connect_timeout);
         });
     });
 
@@ -48,11 +59,10 @@ describe(__filename, function () {
             });
 
             setTimeout(function () {
-                assert.ok(client2.connected);
                 client2.end();
                 assert.ok(connectCallbackRan);
                 done();
-            }, 2000);
+            }, connect_timeout);
         });
     });
 
@@ -78,11 +88,10 @@ describe(__filename, function () {
                 connectCallbackRan = true;
             });
             setTimeout(function () {
-                assert.ok(client1.connected);
                 client1.end();
                 assert.ok(connectCallbackRan);
                 done();
-            }, 2000);
+            }, connect_timeout);
         });
     });
 
@@ -106,11 +115,10 @@ describe(__filename, function () {
                 messageCallbackRan = true;
             });
             setTimeout(function () {
-                assert.ok(client2.connected);
                 client2.end();
                 assert.ok(messageCallbackRan);
                 done();
-            }, 2000);
+            }, connect_timeout);
         });
     });
 
@@ -155,13 +163,11 @@ describe(__filename, function () {
             });
             setTimeout(function () {
                 client1.end();
-                assert.ok(client2.connected);
                 client2.end();
-                assert.ok(!client1.connected);
                 assert.ok(!client2MessageCallbackRan);
                 assert.ok(client1ConnectCallbackRan);
                 done();
-            }, 2000);
+            }, connect_timeout);
         });
     });
 
@@ -178,12 +184,6 @@ describe(__filename, function () {
             client1 = mqtt.connect(options);
             let client1ConnectCallbackRan = false;
             client1.on('connect', function () {
-                let message = {
-                    "from": '1',
-                    "timestamp": "2021-11-26 06:01:12.685Z",
-                    "content": "hello world"
-                }
-                client1.publish(`/2/inbox`, JSON.stringify(message), {qos: 2});
                 client1ConnectCallbackRan = true;
                 client1.end();
             });
@@ -191,19 +191,84 @@ describe(__filename, function () {
                 client1.end();
                 assert.ok(!client1ConnectCallbackRan);
                 done();
-            }, 2000);
+            }, connect_timeout);
         });
     });
 
     describe("", function() {
-        it("client 1 can't sub to client 2's inbox to receive client 2's message", function () {
-
+        it("client 1 can't sub to client 2's inbox to receive client 2's message", function (done) {
+            let options = {
+                host: "localhost",
+                port: "41371",
+                clean: false,
+                clientId: `1:unique1`,
+                username: '1',
+                password: accounts[1].api_token,
+            };
+            client1 = mqtt.connect(options);
+            let connectCallbackRan = false;
+            let messageCallbackRan = false;
+            client1.on("connect", function() {
+               client1.subscribe(`/2/inbox`);
+               connectCallbackRan = true;
+            });
+            client1.on("message", function() {
+               messageCallbackRan = true;
+            });
+            setTimeout(function () {
+                client1.end();
+                assert.ok(connectCallbackRan);
+                assert.ok(!messageCallbackRan);
+                done();
+            }, connect_timeout);
         });
     });
 
     describe("", function () {
-       it("client 1 can't send messages to client 2 after being blocked", function() {
+       it("client 1 can't send messages to client 2 after being blocked", function(done) {
+            const userFriendsUtils = new UserFriendsUtils(database);
+            userFriendsUtils.blockUser(2, 1);
+            let options1 = {
+                host: "localhost",
+                port: "41371",
+                clean: false,
+                clientId: `1:unique1`,
+                username: '1',
+                password: accounts[1].api_token,
+            };
+            client1 = mqtt.connect(options1);
+            let client1ConnectCallbackRan = false;
+            client1.on("connect", function() {
+                let message = {
+                    "from": '1',
+                    "timestamp": "2021-11-26 06:01:12.685Z",
+                    "content": "hello world"
+                }
+                client1.publish("/2/inbox", JSON.stringify(message), {qos: 2});
+                client1ConnectCallbackRan = true;
+                client1.end();
+            });
 
+           let options2 = {
+               host: "localhost",
+               port: "41371",
+               clean: false,
+               clientId: `2:unique2`,
+               username: '2',
+               password: accounts[2].api_token,
+           };
+           client2 = mqtt.connect(options2);
+           let client2MessageCallbackRan = false;
+           client2.on("message", function (topic, res) {
+               client2MessageCallbackRan = true;
+           });
+           setTimeout(function() {
+               client1.end();
+               client2.end();
+               assert.ok(client1ConnectCallbackRan);
+               assert.ok(!client2MessageCallbackRan);
+               done();
+           }, connect_timeout);
        });
     });
 

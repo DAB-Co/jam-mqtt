@@ -3,6 +3,11 @@ const jam_sqlite = require("@dab-co/jam-sqlite");
 require("dotenv").config({path: path.join(__dirname, "..", ".env.local")});
 const db_path = process.env.db_path;
 
+/**
+ * creates a new database from scratch in project root -> sqlite/database.db
+ *
+ * @returns {DatabaseWrapper} jam-sqlite DatabaseWrapper
+ */
 function create_database() {
     jam_sqlite.database_scripts.overwrite_database(db_path);
     return new jam_sqlite.Database(db_path);
