@@ -35,7 +35,7 @@ describe(__filename, function () {
             });
             setTimeout(function () {
                 client1.end();
-                assert.ok(!connectCallbackRan);
+                assert.ok(connectCallbackRan);
                 done();
             }, connect_timeout);
         });
