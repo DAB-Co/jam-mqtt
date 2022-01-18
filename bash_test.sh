@@ -7,7 +7,7 @@ function kill_server(){
 
 echo 'port=41371' > .env.local 
 echo 'db_path=sqlite/database.db' >> .env.local 
-if !(node test/create_database.js); then
+if ! (node test/create_database.js); then
 	echo 'error running node test/create_database.js'
 	exit 1
 fi
