@@ -16,9 +16,9 @@ if (mocha --recursive --exit); then
 	kill_server
 	exit 0
 else
+	kill_server
 	echo '---server output---'
 	cat output
-	kill_server
 	exit 2
 fi
 
