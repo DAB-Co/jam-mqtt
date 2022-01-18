@@ -12,7 +12,7 @@ if ! (node test/create_database.js); then
 	exit 1
 fi
 nohup node jam_mqtt_main.js --no_notification > output &
-if (mocha --recursive --exit); then
+if (npm run mocha --recursive --exit); then
 	kill_server
 	exit 0
 else
