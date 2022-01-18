@@ -22,7 +22,7 @@ firebase_admin.initializeApp({
 
 const message = {
     "data": {
-        "fromId": userId,
+        "fromId": userId.toString(),
     },
 };
 
