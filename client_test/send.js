@@ -21,6 +21,7 @@ const options = {
 }
 
 const client = mqtt.connect(options);
+
 client.on('connect', function () {
     let message = {
         "from": from,
@@ -30,4 +31,8 @@ client.on('connect', function () {
     client.publish(`/${to}/inbox`, JSON.stringify(message), {qos: 2});
     console.log("message sent");
     client.end();
+});
+
+client.on("error", function (error) {
+   console.log(error);
 });

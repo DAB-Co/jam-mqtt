@@ -29,3 +29,7 @@ client.on('message', function (topic, message) {
     let context = message.toString();
     console.log(context);
 });
+
+client.on("error", function (error) {
+    console.log(error);
+});
