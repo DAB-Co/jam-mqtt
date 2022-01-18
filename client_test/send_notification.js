@@ -11,7 +11,9 @@ const database = new Database(process.env.db_path);
 const AccountUtils = require("@dab-co/jam-sqlite").Utils.AccountUtils;
 const accountUtils = new AccountUtils(database);
 
-const firebase_token = accountUtils.getNotificationToken(accountUtils.getIdByUsername(username));
+const userId = accountUtils.getIdByUsername(username);
+
+const firebase_token = accountUtils.getNotificationToken(userId);
 
 const service_account_key = JSON.parse(fs.readFileSync(path.join(__dirname, process.env.firebase_account_key_path), "utf8"));
 firebase_admin.initializeApp({
@@ -20,7 +22,7 @@ firebase_admin.initializeApp({
 
 const message = {
     "data": {
-        "fromId": "2",
+        "fromId": userId,
     },
 };
 
