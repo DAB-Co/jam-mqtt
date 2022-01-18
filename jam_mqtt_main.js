@@ -100,9 +100,9 @@ aedes.authorizePublish = function (client, packet, callback) {
             return callback(new Error('no token'));
         }
         const message = {
-            notification: {
-                title: `You have messages from ${accountUtils.getUsernameById(user_id)}!`,
-                //body: "body",
+            "data": {
+                "fromName": `${accountUtils.getUsernameById(user_id)}`,
+                "fromId": user_id,
             },
         };
         const options = {
