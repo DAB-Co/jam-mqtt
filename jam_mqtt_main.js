@@ -101,7 +101,6 @@ aedes.authorizePublish = function (client, packet, callback) {
         }
         const message = {
             "data": {
-                "fromName": `${accountUtils.getUsernameById(user_id)}`,
                 "fromId": user_id,
             },
         };

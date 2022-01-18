@@ -12,7 +12,6 @@ firebase_admin.initializeApp({
 
 const message = {
     "data": {
-        "fromName": "paulallen",
         "fromId": "2",
     },
 };
