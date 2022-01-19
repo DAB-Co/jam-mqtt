@@ -50,6 +50,7 @@ if (argv.tls) {
 
 aedes.authenticate = function (client, user_id, api_token, callback) {
     // https://github.com/arden/aedes#instanceauthenticateclient-username-password-doneerr-successful
+    console.log("---authenticate handler---");
     let correct_api_token = accountUtils.getApiToken(user_id);
     if (correct_api_token === undefined) {
         console.log(`unknown user_id: ${user_id}: ${client.id}`);
@@ -72,19 +73,20 @@ aedes.authenticate = function (client, user_id, api_token, callback) {
 
 aedes.authorizePublish = function (client, packet, callback) {
     // https://github.com/arden/aedes#instanceauthorizepublishclient-packet-doneerr
+    console.log("---publish handler---");
     let receiver_id = packet.topic.split("/")[1];
     let user_id = client.id.split(":")[0];
-    let senderId;
+    let senderId = undefined;
+    console.log("publishing content...");
+    console.log("sender_id: " + user_id);
+    console.log("receiver_id: " + receiver_id);
+    console.log("content:", packet.payload.toString());
     try {
         senderId = JSON.parse(packet.payload.toString()).from;
     } catch (e) {
         console.log("unable to parse, maybe a will message?");
         return callback(null);
     }
-    console.log("publishing content...");
-    console.log("sender_id: " + user_id);
-    console.log("receiver_id: " + receiver_id);
-    console.log("content:", packet.payload.toString());
 
     if (senderId !== user_id) {
         console.log("wrong senderId:", senderId);
@@ -128,6 +130,7 @@ aedes.authorizePublish = function (client, packet, callback) {
 
 aedes.authorizeSubscribe = function (client, sub, callback) {
     // https://github.com/arden/aedes#instanceauthorizesubscribeclient-pattern-doneerr-pattern
+    console.log("---subscribe handler---");
     console.log(client.id, "subscribing to", sub.topic);
     if (client.id.split(':')[0] === sub.topic.split('/')[1]) {
         console.log("subbed");
