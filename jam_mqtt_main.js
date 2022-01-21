@@ -54,6 +54,11 @@ user_id: client_id
 let last_connected_device = {};
 
 /*
+client_id: false
+ */
+let is_connected = {};
+
+/*
 client_id: number
  */
 let failed_attempt_count = {};
@@ -146,7 +151,8 @@ aedes.authenticate = function (client, user_id, api_token, callback) {
                     }
                 });
             }
-            last_connected_device[user_id] = true;
+            is_connected[client.id] = true;
+            last_connected_device[user_id] = client.id;
             console.log(`connected: ${user_id}: ${client.id}`);
             failed_attempt_count[client.id] = 0;
             callback(null, true);
@@ -162,6 +168,7 @@ aedes.authenticate = function (client, user_id, api_token, callback) {
 
 aedes.on("clientDisconnect", function (client) {
     console.log("---client disconnect---");
+    is_connected[client.id] = false;
     console.log(client.id, "disconnected");
 });
 
@@ -212,32 +219,36 @@ aedes.authorizePublish = function (client, packet, callback) {
 
     let receiverFriends = userFriendsUtils.getFriends(receiver_id);
     if (receiverFriends !== undefined && user_id in receiverFriends && !receiverFriends[user_id]["blocked"]) {
-        let token = accountUtils.getNotificationToken(receiver_id);
-        if (token === undefined) {
-            console.log("receiver id token is undefined, is receiver not in database?");
-            let error = new Error("Auth error");
-            error.returnCode = 5;
-            return callback(error);
+        if (is_connected[client.id]) {
+            callback(null);
+        } else {
+            let token = accountUtils.getNotificationToken(receiver_id);
+            if (token === undefined) {
+                console.log("receiver id token is undefined, is receiver not in database?");
+                let error = new Error("Auth error");
+                error.returnCode = 5;
+                return callback(error);
+            }
+            const message = {
+                "data": {
+                    "fromId": user_id,
+                },
+            };
+            const options = {
+                priority: "high",
+                timeToLive: 60 * 60 * 24,
+            };
+            if (firebase_admin !== undefined &&  token !== undefined && token !== null && token !== "") {
+                firebase_admin.messaging().sendToDevice(token, message, options)
+                    .then(response => {
+                        console.log(response);
+                    })
+                    .catch(error => {
+                        console.log(error);
+                    });
+            }
+            callback(null);
         }
-        const message = {
-            "data": {
-                "fromId": user_id,
-            },
-        };
-        const options = {
-            priority: "high",
-            timeToLive: 60 * 60 * 24,
-        };
-        if (firebase_admin !== undefined &&  token !== undefined && token !== null && token !== "") {
-            firebase_admin.messaging().sendToDevice(token, message, options)
-                .then(response => {
-                    console.log(response);
-                })
-                .catch(error => {
-                    console.log(error);
-                });
-        }
-        callback(null);
     } else {
         console.log(user_id, "not friends with", receiver_id);
         let error = new Error("Auth error");
