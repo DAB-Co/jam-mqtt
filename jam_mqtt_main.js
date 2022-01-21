@@ -238,7 +238,7 @@ aedes.authorizePublish = function (client, packet, callback) {
                 priority: "high",
                 timeToLive: 60 * 60 * 24,
             };
-            if (firebase_admin !== undefined &&  token !== undefined && token !== null && token !== "") {
+            if (firebase_admin !== undefined && token !== undefined && token !== null && token !== "") {
                 firebase_admin.messaging().sendToDevice(token, message, options)
                     .then(response => {
                         console.log(response);
