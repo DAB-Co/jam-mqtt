@@ -11,7 +11,7 @@ const options = {
     clean: false,
     clientId: `${USERNAME}:unique${USERNAME}`,
     username: USERNAME,
-    password: "api_token",
+    password: "api_token3",
     //protocol: 'mqtts',
     //rejectUnauthorized: false,
     //cert: fs.readFileSync(process.env.client_0_cert),
@@ -23,13 +23,15 @@ let client = mqtt.connect(options);
 
 client.on('connect', function () {
     client.subscribe(`/${USERNAME}/inbox`, {qos:2});
+    client.subscribe(`/${USERNAME}/status`, {qos:2});
 });
 
 client.on('message', function (topic, message) {
     let context = message.toString();
-    console.log(context);
+    console.log(topic+": "+context);
 });
 
 client.on("error", function (error) {
     console.log(error);
+    client.end();
 });

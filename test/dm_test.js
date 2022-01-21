@@ -29,13 +29,19 @@ describe(__filename, function () {
             }
             client1 = mqtt.connect(options);
             let connectCallbackRan = false;
+            let errorCallbackRan = false;
             client1.on('connect', function () {
                 connectCallbackRan = true;
                 client1.end();
             });
+            client1.on('error', function (error) {
+                errorCallbackRan = true;
+                assert.strictEqual(error.code, 5);
+            });
             setTimeout(function () {
                 client1.end();
                 assert.ok(!connectCallbackRan);
+                assert.ok(errorCallbackRan);
                 done();
             }, connect_timeout);
         });
@@ -183,13 +189,19 @@ describe(__filename, function () {
             }
             client1 = mqtt.connect(options);
             let client1ConnectCallbackRan = false;
+            let client1ErrorCallbackRan = false;
             client1.on('connect', function () {
                 client1ConnectCallbackRan = true;
                 client1.end();
             });
+            client1.on("error", function (error) {
+                client1ErrorCallbackRan = true;
+                assert.strictEqual(error.code, 4);
+            });
             setTimeout(function () {
                 client1.end();
                 assert.ok(!client1ConnectCallbackRan);
+                assert.ok(client1ErrorCallbackRan);
                 done();
             }, connect_timeout);
         });
@@ -274,10 +286,8 @@ describe(__filename, function () {
 
     describe("", function() {
         it("client 2 can't send messages to client 1 after blocking", function (){
-            // this test won't work i think due to blocking being one way
+            // this test won't work due to blocking being one way
             // but why would you want to send messages to someone you blocked?
-            // idk what to do about this, will create an issue
-            assert.ok(true);
         });
     });
 });
