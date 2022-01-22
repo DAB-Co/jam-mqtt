@@ -28,11 +28,12 @@ client.on('connect', function () {
         "timestamp": "2021-11-26 06:01:12.685Z",
         "content": "ilk"
     }
-    client.publish(`/${to}/inbox`, JSON.stringify(message), {qos: 2});
+    client.publish(`$/${to}/inbox`, JSON.stringify(message), {qos: 2});
     console.log("message sent");
     client.end();
 });
 
 client.on("error", function (error) {
    console.log(error);
+   client.end();
 });
