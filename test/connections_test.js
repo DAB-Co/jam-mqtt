@@ -14,6 +14,12 @@ describe(__filename, function () {
     });
 
     describe("", function () {
+        it("error message after 10 login attempts", function (){
+
+        });
+    })
+
+    describe("", function () {
         it("send logout message to old device when new device connects", function (done) {
             let options1 = setup.deepCopy(accounts[1].mqtt_options);
             let options1v2 = setup.deepCopy(accounts[1].mqtt_options);
@@ -22,13 +28,12 @@ describe(__filename, function () {
             let client1ConnectCallbackRan = false;
             let client1StatusMessageReceived = false;
             client1.on("connect", function () {
-                client1.subscribe(`/1/status`, {qos: 0});
+                client1.subscribe(`/${options1.username}/${options1.clientId}`, {qos: 0});
                 client1ConnectCallbackRan = true;
             });
             client1.on("message", function (topic, res) {
-                if (topic === `/1/status`) {
+                if (topic === `/${options1.username}/${options1.clientId}`) {
                     let content = JSON.parse(res.toString());
-                    assert.strictEqual(content.to, options1.clientId);
                     assert.strictEqual(content.status, "logout");
                     assert.strictEqual(content.data, "a new device has connected, logout from this device");
                     client1StatusMessageReceived = true;
@@ -64,7 +69,7 @@ describe(__filename, function () {
             let client1v2ConnectCallbackRan = false;
             let client1v2StatusMessageReceived = false;
             client1v2.on("connect", function () {
-                client1v2.subscribe(`/1/status`);
+                client1v2.subscribe(`/${options1v2.username}/${options1v2.clientId}`);
                 client1v2ConnectCallbackRan = true;
             });
             client1v2.on("message", function(topic, res) {

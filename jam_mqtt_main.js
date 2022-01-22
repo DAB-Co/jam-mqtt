@@ -48,6 +48,21 @@ if (argv.tls) {
     server = require('net').createServer(aedes.handle)
 }
 
+function send_server_message(topic, message) {
+    console.log("sending server message", message, "to", topic);
+    aedes.publish({
+        cmd: 'publish',
+        qos: 0,
+        topic: topic,
+        payload: Buffer.from(message),
+        retain: false
+    }, (err) => {
+        if (err) {
+            console.log("Error sending server message:", err);
+        }
+    });
+}
+
 /*
 user_id: client_id
  */
@@ -77,17 +92,7 @@ aedes.preConnect = function (client, packet, callback) {
             data: "too many attempts to connect to mqtt",
             status: "logout",
         }
-        aedes.publish({
-            cmd: 'publish',
-            qos: 2,
-            topic: `/${client_id.split(':')[0]}/status`,
-            payload: Buffer.from(JSON.stringify(message)),
-            retain: false
-        }, (err) => {
-            if (err) {
-                console.log("Error sending logout:", err);
-            }
-        });
+        send_server_message(`/${client_id.split(':')[0]}/${client_id}/`, JSON.stringify(message));
         return callback(new Error("Spam error"), null);
     }
     callback(null, true);
@@ -127,21 +132,10 @@ aedes.authenticate = function (client, user_id, api_token, callback) {
             if (user_id in last_connected_device && last_connected_device[user_id] !== client.id) {
                 console.log(`${last_connected_device[user_id]} was connected with the same user id, sending logout`);
                 let message = {
-                    to: last_connected_device[user_id],
                     data: "a new device has connected, logout from this device",
                     status: "logout",
                 }
-                aedes.publish({
-                    cmd: 'publish',
-                    qos: 0,
-                    topic: `/${user_id}/status`,
-                    payload: Buffer.from(JSON.stringify(message)),
-                    retain: false
-                }, (err) => {
-                    if (err) {
-                        console.log("Error sending logout:", err);
-                    }
-                });
+                send_server_message(`/${user_id}/${last_connected_device[user_id]}`, JSON.stringify(message));
             }
             is_connected[client.id] = true;
             last_connected_device[user_id] = client.id;
