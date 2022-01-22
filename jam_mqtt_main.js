@@ -254,7 +254,9 @@ aedes.authorizeSubscribe = function (client, sub, callback) {
     }
 
     console.log(client.id, "subscribing to", sub.topic);
-    if (client.id.split(':')[0] === sub.topic.split('/')[1]) {
+    let topic_levels = sub.topic.split('/').slice(1);
+    // for now, only allow user to subscribe to inbox and their own device id's channel
+    if (client.id.split(':')[0] === topic_levels[0] && (topic_levels[1] === "inbox" || topic_levels[1] === client.id)) {
         console.log("subbed");
         callback(null, sub);
     } else {
