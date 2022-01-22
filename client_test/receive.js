@@ -9,9 +9,9 @@ const options = {
     host: process.env.ip,
     port: process.env.port,
     clean: false,
-    clientId: `${USERNAME}:unique${USERNAME}`,
+    clientId: `${USERNAME}:uniquev2`,
     username: USERNAME,
-    password: "api_token3",
+    password: "api_token",
     //protocol: 'mqtts',
     //rejectUnauthorized: false,
     //cert: fs.readFileSync(process.env.client_0_cert),
@@ -23,7 +23,7 @@ let client = mqtt.connect(options);
 
 client.on('connect', function () {
     client.subscribe(`/${USERNAME}/inbox`, {qos:2});
-    client.subscribe(`/${USERNAME}/status`, {qos:2});
+    client.subscribe(`/${USERNAME}/status`, {qos:0});
 });
 
 client.on('message', function (topic, message) {

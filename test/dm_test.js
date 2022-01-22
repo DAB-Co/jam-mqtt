@@ -19,14 +19,8 @@ describe(__filename, function () {
 
     describe("", function() {
         it("client 1 can't login with wrong api token", function(done) {
-            let options = {
-                host: "localhost",
-                port: "41371",
-                clean: false,
-                clientId: `1:unique1`,
-                username: '1',
-                password: "wrong_api_token",
-            }
+            let options = setup.deepCopy(accounts[1].mqtt_options);
+            options.password = "wrong_api_token";
             client1 = mqtt.connect(options);
             let connectCallbackRan = false;
             let errorCallbackRan = false;
@@ -49,14 +43,7 @@ describe(__filename, function () {
 
     describe("", function () {
         it("subscribing to /2/inbox", function (done) {
-            let options = {
-                host: "localhost",
-                port: "41371",
-                clean: false,
-                clientId: `2:unique2`,
-                username: '2',
-                password: accounts[2].api_token,
-            }
+            let options = setup.deepCopy(accounts[2].mqtt_options);
             client2 = mqtt.connect(options);
             let connectCallbackRan = false;
             client2.on('connect', function () {
@@ -74,14 +61,7 @@ describe(__filename, function () {
 
     describe("", function () {
         it("publishing from 1 to /2/inbox", function (done) {
-            let options = {
-                host: "localhost",
-                port: "41371",
-                clean: false,
-                clientId: `1:unique1`,
-                username: '1',
-                password: accounts[1].api_token,
-            }
+            let options = setup.deepCopy(accounts[1].mqtt_options);
             client1 = mqtt.connect(options);
             let connectCallbackRan = false;
             client1.on('connect', function () {
@@ -103,14 +83,7 @@ describe(__filename, function () {
 
     describe("", function () {
         it("receiving message from 1", function (done) {
-            let options = {
-                host: "localhost",
-                port: "41371",
-                clean: false,
-                clientId: `2:unique2`,
-                username: '2',
-                password: accounts[2].api_token,
-            }
+            let options = setup.deepCopy(accounts[2].mqtt_options);
             client2 = mqtt.connect(options);
             let messageCallbackRan = false;
             client2.on('message', function (topic, res) {
@@ -130,14 +103,7 @@ describe(__filename, function () {
 
     describe("", function () {
         it("user 1 can't send a message pretending to be from 2", function (done) {
-            let options1 = {
-                host: "localhost",
-                port: "41371",
-                clean: false,
-                clientId: `1:unique1`,
-                username: '1',
-                password: accounts[1].api_token,
-            }
+            let options1 = setup.deepCopy(accounts[1].mqtt_options);
             client1 = mqtt.connect(options1);
             let client1ConnectCallbackRan = false;
             client1.on('connect', function () {
@@ -150,14 +116,7 @@ describe(__filename, function () {
                 client1ConnectCallbackRan = true;
                 client1.end();
             });
-            let options2 = {
-                host: "localhost",
-                port: "41371",
-                clean: false,
-                clientId: `2:unique2`,
-                username: '2',
-                password: accounts[2].api_token,
-            };
+            let options2 = setup.deepCopy(accounts[2].mqtt_options);
             client2 = mqtt.connect(options2);
             let client2MessageCallbackRan = false;
             client2.on("message", function (topic, res) {
@@ -179,14 +138,8 @@ describe(__filename, function () {
 
     describe("", function () {
         it("user 1 can't login with spoofed client id pretending to be 2", function (done) {
-            let options = {
-                host: "localhost",
-                port: "41371",
-                clean: false,
-                clientId: `2:unique1`,
-                username: '1',
-                password: accounts[1].api_token,
-            }
+            let options = setup.deepCopy(accounts[1].mqtt_options);
+            options.clientId = `2:unique1`;
             client1 = mqtt.connect(options);
             let client1ConnectCallbackRan = false;
             let client1ErrorCallbackRan = false;
@@ -209,14 +162,7 @@ describe(__filename, function () {
 
     describe("", function() {
         it("client 1 can't sub to client 2's inbox to receive client 2's message", function (done) {
-            let options = {
-                host: "localhost",
-                port: "41371",
-                clean: false,
-                clientId: `1:unique1`,
-                username: '1',
-                password: accounts[1].api_token,
-            };
+            let options = setup.deepCopy(accounts[1].mqtt_options);
             client1 = mqtt.connect(options);
             let connectCallbackRan = false;
             let messageCallbackRan = false;
@@ -240,14 +186,7 @@ describe(__filename, function () {
        it("client 1 can't send messages to client 2 after being blocked", function(done) {
             const userFriendsUtils = new UserFriendsUtils(database);
             userFriendsUtils.blockUser(2, 1);
-            let options1 = {
-                host: "localhost",
-                port: "41371",
-                clean: false,
-                clientId: `1:unique1`,
-                username: '1',
-                password: accounts[1].api_token,
-            };
+            let options1 = setup.deepCopy(accounts[1].mqtt_options);
             client1 = mqtt.connect(options1);
             let client1ConnectCallbackRan = false;
             client1.on("connect", function() {
@@ -261,14 +200,7 @@ describe(__filename, function () {
                 client1.end();
             });
 
-           let options2 = {
-               host: "localhost",
-               port: "41371",
-               clean: false,
-               clientId: `2:unique2`,
-               username: '2',
-               password: accounts[2].api_token,
-           };
+           let options2 = setup.deepCopy(accounts[2].mqtt_options);
            client2 = mqtt.connect(options2);
            let client2MessageCallbackRan = false;
            client2.on("message", function (topic, res) {

@@ -105,15 +105,6 @@ aedes.authenticate = function (client, user_id, api_token, callback) {
         return callback(error, null);
     }
 
-    // wildcards are not allowed
-    if (user_id.indexOf('$') !== -1 || user_id.indexOf('#') !== -1 || user_id.indexOf('+') !== -1) {
-        console.log("user id has forbidden wildcard:", user_id);
-        let error = new Error("Id error");
-        error.returnCode = 4;
-        failed_attempt_count[client.id]++;
-        return callback(error);
-    }
-
     // api token format is valid
     if (api_token.toString() === "" || api_token.toString() === null || api_token.toString() === undefined) {
         console.log("Wrong api token format:", api_token.toString);
@@ -134,14 +125,15 @@ aedes.authenticate = function (client, user_id, api_token, callback) {
         if (api_token.toString() === correct_api_token) {
             // user is attempting to connect with a different device
             if (user_id in last_connected_device && last_connected_device[user_id] !== client.id) {
-                console.log("a different device was connected with this id, sending logout for that device");
+                console.log(`${last_connected_device[user_id]} was connected with the same user id, sending logout`);
                 let message = {
+                    to: last_connected_device[user_id],
                     data: "a new device has connected, logout from this device",
                     status: "logout",
                 }
                 aedes.publish({
                     cmd: 'publish',
-                    qos: 2,
+                    qos: 0,
                     topic: `/${user_id}/status`,
                     payload: Buffer.from(JSON.stringify(message)),
                     retain: false
@@ -262,7 +254,9 @@ aedes.authorizeSubscribe = function (client, sub, callback) {
     console.log("---subscribe handler---");
     if (sub.topic.indexOf('$') !== -1 || sub.topic.indexOf('#') !== -1 || sub.topic.indexOf('+') !== -1) {
         console.log("tried to subscribe to a channel with forbidden wildcard:", sub.topic);
-        return callback(new Error("Topic forbidden"));
+        let error = new Error("Topic forbidden");
+        error.returnCode = 5;
+        return callback(error, null);
     }
 
     console.log(client.id, "subscribing to", sub.topic);

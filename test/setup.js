@@ -14,6 +14,16 @@ function create_database() {
 }
 
 /**
+ * return a deep copy of an object
+ *
+ * @param object
+ * @returns {object}
+ */
+function deepCopy(object) {
+    return JSON.parse(JSON.stringify(object));
+}
+
+/**
  *
  * @param database
  * @returns {json} {"email": `user${i}@email.com`,
@@ -31,6 +41,14 @@ function register_accounts(database) {
             "username": `user${i}`,
             "password": "12345678",
             "api_token": "api_token",
+            "mqtt_options": {
+                host: "localhost",
+                port: "41371",
+                clean: false,
+                clientId: `${i}:unique`,
+                username:`${i}`,
+                password: "api_token",
+            }
         };
         let query_res = accountUtils.addUser(user.email, user.username, user.password, user.api_token);
         userFriendsUtils.addUser(i);
@@ -43,4 +61,5 @@ function register_accounts(database) {
 module.exports = {
     create_database: create_database,
     register_accounts: register_accounts,
+    deepCopy: deepCopy,
 }
