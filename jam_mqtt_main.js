@@ -189,8 +189,12 @@ aedes.authorizePublish = function (client, packet, callback) {
     // https://github.com/arden/aedes#instanceauthorizepublishclient-packet-doneerr
     console.log("---publish handler---");
 
-    let packet_contents = packet.topic.split("/");
-    let receiver_id = packet_contents[1];
+    let topic_contents = packet.topic.split("/");
+    if (topic_contents.length < 3) {
+        return errorHandler(callback, undefined, "authorizePublish", "topic", "not enough topic levels", 4, packet.messageId);
+    }
+    topic_contents = topic_contents.slice(1);
+    let receiver_id = topic_contents[0];
     let user_id = client.id.split(":")[0];
     let senderId = undefined;
     console.log("publishing content...");
@@ -205,7 +209,7 @@ aedes.authorizePublish = function (client, packet, callback) {
     }
 
     // only user can publish to their own channels other than their inbox
-    if (senderId !== receiver_id && packet_contents[2] !== "inbox") {
+    if (senderId !== receiver_id && topic_contents[1] !== "inbox") {
         console.log("tried to publish to", packet.topic);
         return errorHandler(callback, undefined,"authorizePublish", "topic", "can't publish to other user's channel except inbox", 5, packet.messageId);
     }
@@ -269,7 +273,12 @@ aedes.authorizeSubscribe = function (client, sub, callback) {
     }
 
     console.log(client.id, "subscribing to", sub.topic);
-    let topic_levels = sub.topic.split('/').slice(1);
+    let topic_levels = sub.topic.split('/');
+
+    if (topic_levels.length < 2) {
+        return errorHandler(callback, null, "authorizeSubscribe", sub.topic, "not enough topic levels");
+    }
+    topic_levels = topic_levels.slice(1);
 
     if (client.id.split(':')[0] === topic_levels[0]) {
         console.log("subbed");

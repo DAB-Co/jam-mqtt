@@ -176,7 +176,7 @@ describe(__filename, function () {
                 });
             }
 
-            connect("dollarSignRan", "$SYS/", '$');
+            connect("dollarSignRan", "/$SYS/pierce/pierce", '$');
 
             setTimeout(function (){connect("poundSignRan", "#", '#')}, connect_timeout*0.3);
 
@@ -192,6 +192,58 @@ describe(__filename, function () {
                 done();
             }, connect_timeout);
         });
+    });
+
+    describe("", function () {
+       it("publish to /2/devices/client_id from 1", function (done) {
+           let options1 = setup.deepCopy(accounts[1].mqtt_options);
+           let client1ConnectCallbackRan = false;
+           let messageId = undefined;
+           let client1MessageCallbackRan = false;
+           let client2MessageCallbackRan = false;
+           let client2ConnectCallbackRan = false;
+           let client2 = mqtt.connect(accounts[2].mqtt_options);
+           client2.on("connect", function () {
+               client2ConnectCallbackRan = true;
+           });
+           client2.on("message", function (topic, payload) {
+              client2MessageCallbackRan = true;
+           });
+           let client1 = mqtt.connect(options1);
+           client1.on("connect", function () {
+               client1.subscribe(`/1/devices/${options1.clientId}`);
+               client1.publish(`/2/devices/2:unique`, "it's hip to be square", {qos: 2});
+           });
+           client1.on("packetsend", function (packet) {
+               if (packet.payload === "it's hip to be square") {
+                   messageId = packet.messageId;
+                   assert.ok(messageId !== undefined && messageId !== null);
+                   client1ConnectCallbackRan = true;
+               }
+           });
+           client1.on("message", function (topic, payload) {
+                if (topic === `/1/devices/${options1.clientId}`){
+                    let content = JSON.parse(payload.toString());
+                    assert.strictEqual(content.type, "error");
+                    assert.strictEqual(content.handler, "authorizePublish");
+                    assert.strictEqual(content.category, "topic");
+                    assert.strictEqual(content.message, "can't publish to other user's channel except inbox");
+                    assert.strictEqual(content.messageId, messageId);
+                    client1MessageCallbackRan = true;
+                }
+                client1.end();
+           });
+
+           setTimeout(function () {
+               client2.end();
+               client1.end();
+               assert.ok(client2ConnectCallbackRan);
+               assert.ok(client1ConnectCallbackRan);
+               assert.ok(client1MessageCallbackRan);
+               assert.ok(!client2MessageCallbackRan);
+               done();
+           }, connect_timeout);
+       });
     });
 });
 
