@@ -48,39 +48,173 @@ if (argv.tls) {
     server = require('net').createServer(aedes.handle)
 }
 
+function send_server_message(topic, message) {
+    console.log("sending server message", message, "to", topic);
+    aedes.publish({
+        cmd: 'publish',
+        qos: 0,
+        topic: topic,
+        payload: Buffer.from(message),
+        retain: false
+    }, (err) => {
+        if (err) {
+            console.log("Error sending server message:", err);
+        }
+    });
+}
+
+/**
+ *
+ * @param callback
+ * @param success
+ * @param handler
+ * @param category
+ * @param message
+ * @param returnCode
+ * @param messageId
+ */
+function errorHandler(callback, success, handler, category, message, returnCode=5, messageId=null) {
+    let content = {
+        "type": "error",
+        "handler": handler,
+        "category": category,
+        "message": message,
+        "messageId": messageId,
+    }
+    let error = new Error("Error");
+    error.message = JSON.stringify(content);
+    error.returnCode = returnCode;
+    if (success === undefined) {
+        callback(error);
+    }
+    else {
+        callback(error, success);
+    }
+}
+
+/*
+user_id: client_id
+ */
+let last_connected_device = {};
+
+/*
+client_id: false
+ */
+let is_connected = {};
+
+/*
+client_id: number
+ */
+let failed_attempt_count = {};
+
+aedes.preConnect = function (client, packet, callback) {
+    console.log("---preConnect handler---");
+    let client_id = packet.clientId;
+    console.log("preConnect:", packet.clientId);
+    if (!(client_id in failed_attempt_count)) {
+        failed_attempt_count[client_id] = 0;
+    }
+
+    if (failed_attempt_count[client_id] > 10) {
+        console.log("not going forward with:", client_id, "due to exceeding number of auth fails");
+        // some error messages like this are kind of pointless since the device is not even authorized and subscribed
+        return errorHandler(callback, null, "preConnect", "spam", "too many failed auth attempts", 4, packet.messageId);
+    }
+    return callback(null, true);
+};
+
 aedes.authenticate = function (client, user_id, api_token, callback) {
     // https://github.com/arden/aedes#instanceauthenticateclient-username-password-doneerr-successful
     console.log("---authenticate handler---");
+    // id matches with username
+    if (client.id.split(':')[0] !== user_id) {
+        console.log("client id doesn't match user id:", user_id, ":", client.id);
+        return errorHandler(callback, null,"authenticate", "id", "client id and user id don't match", 4);
+    }
+
+    // api token format is invalid
+    if (api_token.toString() === "" || api_token.toString() === null || api_token.toString() === undefined) {
+        console.log("Wrong api token format:", api_token.toString);
+        failed_attempt_count[client.id]++;
+        return errorHandler(callback, null,"authenticate", "api_token", "wrong api token format", 4);
+    }
+
     let correct_api_token = accountUtils.getApiToken(user_id);
     if (correct_api_token === undefined) {
         console.log(`unknown user_id: ${user_id}: ${client.id}`);
-        let error = new Error("Auth error");
-        error.returnCode = 4;
-        callback(error, null);
+        failed_attempt_count[client.id]++;
+        return errorHandler(callback, null, "authenticate", "id", "unknown user id", 5);
     } else {
-        if (api_token.toString() !== "" && api_token.toString() !== null && api_token.toString() !== undefined
-            && api_token.toString() === correct_api_token && user_id === client.id.split(':')[0]) {
+        if (api_token.toString() === correct_api_token) {
+            // user is attempting to connect with a different device
+            if (user_id in last_connected_device && last_connected_device[user_id] !== client.id) {
+                console.log(`${last_connected_device[user_id]} was connected with the same user id, sending logout`);
+                let logout_message = JSON.stringify({
+                    type: "error",
+                    handler: "authenticate",
+                    category: "logout",
+                    message: "a new device has connected, logout from this device",
+                    messageId: null,
+                });
+                send_server_message(`/${user_id}/devices/${last_connected_device[user_id]}`, logout_message);
+            }
+            is_connected[client.id] = true;
+            last_connected_device[user_id] = client.id;
             console.log(`connected: ${user_id}: ${client.id}`);
-            callback(null, true);
+            failed_attempt_count[client.id] = 0;
+            return callback(null, true);
         } else {
-            console.log(`wrong password, username or client id: ${user_id}: ${client.id}`);
-            let error = new Error("Auth error");
-            error.returnCode = 5;
-            callback(error, null);
+            console.log(`wrong api_token: ${user_id}: ${client.id}`);
+            failed_attempt_count[client.id]++;
+            return errorHandler(callback, null, "authenticate", "api_token", "wrong api token", 5);
         }
     }
 }
 
+aedes.on("clientDisconnect", function (client) {
+    console.log("---client disconnect---");
+    is_connected[client.id] = false;
+    console.log(client.id, "disconnected");
+});
+
+aedes.on("clientError", function (client, error) {
+    console.log("---error handler---");
+    console.log(client.id, ":", error.message);
+    if (error.code !== "ECONNRESET") {
+        send_server_message(`/${client.id.split(':')[0]}/devices/${client.id}`, error.message);
+    }
+});
+
 aedes.authorizePublish = function (client, packet, callback) {
     // https://github.com/arden/aedes#instanceauthorizepublishclient-packet-doneerr
     console.log("---publish handler---");
-    let receiver_id = packet.topic.split("/")[1];
+
+    let topic_contents = packet.topic.split("/");
+    if (topic_contents.length < 3) {
+        return errorHandler(callback, undefined, "authorizePublish", "topic", "not enough topic levels", 4, packet.messageId);
+    }
+    topic_contents = topic_contents.slice(1);
+    let receiver_id = topic_contents[0];
     let user_id = client.id.split(":")[0];
     let senderId = undefined;
     console.log("publishing content...");
     console.log("sender_id: " + user_id);
     console.log("receiver_id: " + receiver_id);
     console.log("content:", packet.payload.toString());
+
+    // wildcards are not allowed
+    if (packet.topic.indexOf('$') !== -1 || packet.topic.indexOf('#') !== -1 || packet.topic.indexOf('+') !== -1) {
+        console.log("tried to publish a channel with forbidden wildcard:", packet.topic);
+        return errorHandler(callback, undefined, "authorizePublish", "topic", "wildcards are not allowed in topic", 5, packet.messageId);
+    }
+
+    // only user can publish to their own channels other than their inbox
+    if (senderId !== receiver_id && topic_contents[1] !== "inbox") {
+        console.log("tried to publish to", packet.topic);
+        return errorHandler(callback, undefined,"authorizePublish", "topic", "can't publish to other user's channel except inbox", 5, packet.messageId);
+    }
+
+    // couldn't get sender id in message
     try {
         senderId = JSON.parse(packet.payload.toString()).from;
     } catch (e) {
@@ -88,58 +222,70 @@ aedes.authorizePublish = function (client, packet, callback) {
         return callback(null);
     }
 
+    // check if message sender id is same as client's id
     if (senderId !== user_id) {
         console.log("wrong senderId:", senderId);
-        let error = new Error("Auth error");
-        error.returnCode = 5;
-        return callback(error);
+        return errorHandler(callback, undefined,"authorizePublish", "payload", "payload sender id mismatch", 4, packet.messageId);
     }
 
     let receiverFriends = userFriendsUtils.getFriends(receiver_id);
     if (receiverFriends !== undefined && user_id in receiverFriends && !receiverFriends[user_id]["blocked"]) {
-        let token = accountUtils.getNotificationToken(receiver_id);
-        if (token === undefined) {
-            return callback(new Error('no token'));
+        if (is_connected[client.id]) {
+            callback(null);
+        } else {
+            if (firebase_admin !== undefined && token !== undefined && token !== null && token !== "") {
+                let token = accountUtils.getNotificationToken(receiver_id);
+                if (token === undefined) {
+                    console.log("receiver id token is undefined, is receiver not in database?");
+                    return errorHandler(callback, undefined,"authorizePublish", "notification_token", "fatal database error", 3, packet.messageId);
+                }
+                const message = {
+                    "data": {
+                        "fromId": user_id,
+                    },
+                };
+                const options = {
+                    priority: "high",
+                    timeToLive: 60 * 60 * 24,
+                };
+                firebase_admin.messaging().sendToDevice(token, message, options)
+                    .then(response => {
+                        console.log(response);
+                    })
+                    .catch(error => {
+                        console.log(error);
+                    });
+            }
+            return callback(null);
         }
-        const message = {
-            "data": {
-                "fromId": user_id,
-            },
-        };
-        const options = {
-            priority: "high",
-            timeToLive: 60 * 60 * 24,
-        };
-        if (firebase_admin !== undefined &&  token !== undefined && token !== null && token !== "") {
-            firebase_admin.messaging().sendToDevice(token, message, options)
-                .then(response => {
-                    console.log(response);
-                })
-                .catch(error => {
-                    console.log(error);
-                });
-        }
-        callback(null);
     } else {
         console.log(user_id, "not friends with", receiver_id);
-        let error = new Error("Auth error");
-        error.returnCode = 5;
-        callback(error);
+        return errorHandler(callback, undefined, "authorizePublish", "friends", "not friends with the receiver", 5, packet.messageId);
     }
 }
 
 aedes.authorizeSubscribe = function (client, sub, callback) {
     // https://github.com/arden/aedes#instanceauthorizesubscribeclient-pattern-doneerr-pattern
     console.log("---subscribe handler---");
+    if (sub.topic.indexOf('$') !== -1 || sub.topic.indexOf('#') !== -1 || sub.topic.indexOf('+') !== -1) {
+        console.log("tried to subscribe to a channel with forbidden wildcard:", sub.topic);
+        return errorHandler(callback, null,"authorizeSubscribe", sub.topic, "wildcards are not allowed in topic");
+    }
+
     console.log(client.id, "subscribing to", sub.topic);
-    if (client.id.split(':')[0] === sub.topic.split('/')[1]) {
+    let topic_levels = sub.topic.split('/');
+
+    if (topic_levels.length < 2) {
+        return errorHandler(callback, null, "authorizeSubscribe", sub.topic, "not enough topic levels");
+    }
+    topic_levels = topic_levels.slice(1);
+
+    if (client.id.split(':')[0] === topic_levels[0]) {
         console.log("subbed");
-        callback(null, sub);
+        return callback(null, sub);
     } else {
         console.log("sub error");
-        let error = new Error("Auth error");
-        error.returnCode = 5;
-        callback(error, null);
+        return errorHandler(callback, null,"authorizeSubscribe", sub.topic, "not authorized");
     }
 }
 
