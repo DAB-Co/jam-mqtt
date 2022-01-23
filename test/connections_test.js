@@ -247,14 +247,34 @@ describe(__filename, function () {
     });
 
     describe("", function () {
-       it("", function () {
+       it("subscribe with not enough topic levels", function (done) {
+            let client1 = mqtt.connect(accounts[1].mqtt_options);
+            client1.on("connect", function () {
+                client1.subscribe(`/${accounts[1].mqtt_options.username}/devices/${accounts[1].mqtt_options.clientId}`);
 
+            });
+            client1.on("message", function () {
+
+            });
+            setTimeout(function () {
+                client1.end();
+                done();
+            }, connect_timeout);
        });
     });
 
     describe("", function () {
-        it("", function () {
+        it("publish with not enough topic levels", function () {
+            let client1 = mqtt.connect(accounts[1].mqtt_options);
+            client1.on("connect", function () {
+            });
+            client1.on("message", function () {
 
+            });
+            setTimeout(function () {
+                client1.end();
+                done();
+            }, connect_timeout);
         });
     });
 });
