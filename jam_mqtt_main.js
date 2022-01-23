@@ -49,7 +49,7 @@ if (argv.tls) {
 }
 
 function send_server_message(topic, message) {
-    console.log("sending server message", message, "to", topic);
+    console.log("sending server message \"" + message + "\" to" + topic);
     aedes.publish({
         cmd: 'publish',
         qos: 0,
