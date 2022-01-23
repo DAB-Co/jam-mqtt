@@ -249,30 +249,68 @@ describe(__filename, function () {
     describe("", function () {
        it("subscribe with not enough topic levels", function (done) {
             let client1 = mqtt.connect(accounts[1].mqtt_options);
+            let connectCallbackRan = false;
+            let messageCallbackRan = false;
             client1.on("connect", function () {
                 client1.subscribe(`/${accounts[1].mqtt_options.username}/devices/${accounts[1].mqtt_options.clientId}`);
-
+                client1.subscribe(`${accounts[1].mqtt_options.username}`);
+                connectCallbackRan = true;
             });
-            client1.on("message", function () {
-
+            client1.on("message", function (topic, message) {
+                if (topic === `/${accounts[1].mqtt_options.username}/devices/${accounts[1].mqtt_options.clientId}`) {
+                    let content = JSON.parse(message.toString());
+                    assert.strictEqual(content.type, "error");
+                    assert.strictEqual(content.handler, "authorizeSubscribe");
+                    assert.strictEqual(content.category, `${accounts[1].mqtt_options.username}`);
+                    assert.strictEqual(content.message, "not enough topic levels");
+                    assert.strictEqual(content.messageId, null);
+                    messageCallbackRan = true;
+                }
             });
             setTimeout(function () {
                 client1.end();
+                assert.ok(connectCallbackRan);
+                assert.ok(messageCallbackRan);
                 done();
             }, connect_timeout);
        });
     });
 
     describe("", function () {
-        it("publish with not enough topic levels", function () {
+        it("publish with not enough topic levels", function (done) {
             let client1 = mqtt.connect(accounts[1].mqtt_options);
+            let connectCallbackRan = false;
+            let packetSendCallbackRan = false;
+            let messageId = undefined;
+            let messageCallbackRan = false;
             client1.on("connect", function () {
+                client1.subscribe(`/1/${accounts[1].mqtt_options.clientId}`);
+                client1.publish(`/1`, "Let's see paul allen's startup", {qos: 2});
+                connectCallbackRan = true;
             });
-            client1.on("message", function () {
-
+            client1.on("packetsend", function (packet) {
+                if (packet.payload === "Let's see paul allen's startup") {
+                    messageId = packet.messageId;
+                    assert.ok(messageId !== undefined && messageId !== null);
+                    packetSendCallbackRan = true;
+                }
+            })
+            client1.on("message", function (topic, payload) {
+                if (topic === `/1/devices/${accounts[1].mqtt_options.clientId}`) {
+                    let content = JSON.parse(payload.toString());
+                    assert.strictEqual(content.type, "error");
+                    assert.strictEqual(content.handler, "authorizePublish");
+                    assert.strictEqual(content.category, `topic`);
+                    assert.strictEqual(content.message, "not enough topic levels");
+                    assert.strictEqual(content.messageId, messageId);
+                    messageCallbackRan = true;
+                }
             });
             setTimeout(function () {
                 client1.end();
+                assert.ok(connectCallbackRan);
+                assert.ok(packetSendCallbackRan);
+                assert.ok(messageCallbackRan);
                 done();
             }, connect_timeout);
         });
