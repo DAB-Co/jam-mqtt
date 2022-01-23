@@ -233,21 +233,21 @@ aedes.authorizePublish = function (client, packet, callback) {
         if (is_connected[client.id]) {
             callback(null);
         } else {
-            let token = accountUtils.getNotificationToken(receiver_id);
-            if (token === undefined) {
-                console.log("receiver id token is undefined, is receiver not in database?");
-                return errorHandler(callback, undefined,"authorizePublish", "notification_token", "fatal database error", 3, packet.messageId);
-            }
-            const message = {
-                "data": {
-                    "fromId": user_id,
-                },
-            };
-            const options = {
-                priority: "high",
-                timeToLive: 60 * 60 * 24,
-            };
             if (firebase_admin !== undefined && token !== undefined && token !== null && token !== "") {
+                let token = accountUtils.getNotificationToken(receiver_id);
+                if (token === undefined) {
+                    console.log("receiver id token is undefined, is receiver not in database?");
+                    return errorHandler(callback, undefined,"authorizePublish", "notification_token", "fatal database error", 3, packet.messageId);
+                }
+                const message = {
+                    "data": {
+                        "fromId": user_id,
+                    },
+                };
+                const options = {
+                    priority: "high",
+                    timeToLive: 60 * 60 * 24,
+                };
                 firebase_admin.messaging().sendToDevice(token, message, options)
                     .then(response => {
                         console.log(response);
