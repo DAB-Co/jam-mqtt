@@ -14,12 +14,6 @@ describe(__filename, function () {
     });
 
     describe("", function () {
-        it("error message after 10 login attempts", function (){
-
-        });
-    })
-
-    describe("", function () {
         it("send logout message to old device when new device connects", function (done) {
             let options1 = setup.deepCopy(accounts[1].mqtt_options);
             let options1v2 = setup.deepCopy(accounts[1].mqtt_options);
@@ -28,14 +22,17 @@ describe(__filename, function () {
             let client1ConnectCallbackRan = false;
             let client1StatusMessageReceived = false;
             client1.on("connect", function () {
-                client1.subscribe(`/${options1.username}/${options1.clientId}`, {qos: 0});
+                client1.subscribe(`/${options1.username}/devices/${options1.clientId}`, {qos: 0});
                 client1ConnectCallbackRan = true;
             });
             client1.on("message", function (topic, res) {
-                if (topic === `/${options1.username}/${options1.clientId}`) {
+                if (topic === `/${options1.username}/devices/${options1.clientId}`) {
                     let content = JSON.parse(res.toString());
-                    assert.strictEqual(content.status, "logout");
-                    assert.strictEqual(content.data, "a new device has connected, logout from this device");
+                    assert.strictEqual(content.type, "error");
+                    assert.strictEqual(content.handler, "authenticate");
+                    assert.strictEqual(content.category, "logout");
+                    assert.strictEqual(content.message, "a new device has connected, logout from this device");
+                    assert.strictEqual(content.messageId, null);
                     client1StatusMessageReceived = true;
                     client1.end();
                 }
@@ -69,12 +66,11 @@ describe(__filename, function () {
             let client1v2ConnectCallbackRan = false;
             let client1v2StatusMessageReceived = false;
             client1v2.on("connect", function () {
-                client1v2.subscribe(`/${options1v2.username}/${options1v2.clientId}`);
+                client1v2.subscribe(`/${options1v2.username}/devices/${options1v2.clientId}`);
                 client1v2ConnectCallbackRan = true;
             });
             client1v2.on("message", function(topic, res) {
-                let content = JSON.parse(res.toString());
-                assert.fail(content);
+                assert.fail(res.toString());
                 client1v2StatusMessageReceived = true;
             });
             setTimeout(function () {
@@ -100,12 +96,18 @@ describe(__filename, function () {
                 client = mqtt.connect(options);
                 client.on("connect", function () {
                     client.subscribe(subscription);
-                    client.end();
+                    client.subscribe(`/${options.username}/devices/${options.clientId}`);
                 });
-                client.on("error", function (error) {
-                    console.log(error);
-                    assert.strictEqual(error.code, 6);
-                    subscribeConditions[condition] = true;
+                client.on("message", function (topic, payload) {
+                    if (topic === `/${options.username}/devices/${options.clientId}`) {
+                        let content = JSON.parse(payload.toString());
+                        assert.strictEqual(content.type, "error");
+                        assert.strictEqual(content.handler, "authorizeSubscribe");
+                        assert.strictEqual(content.category, subscription);
+                        assert.strictEqual(content.message, "wildcards are not allowed in topic");
+                        assert.strictEqual(content.messageId, null);
+                        subscribeConditions[condition] = true;
+                    }
                     client.end();
                 });
             }
@@ -142,32 +144,51 @@ describe(__filename, function () {
             }
             let client = undefined;
 
-            function connect(condition, topic) {
+            function connect(condition, topic, sign=undefined) {
                 client = mqtt.connect(options);
+                let messageId = undefined;
                 client.on("connect", function () {
-                    client.publish(topic, "8:30 reservation at Dorsia");
-                    publishConditions[condition] = true;
-                    client.end();
+                    client.subscribe(`/${options.username}/devices/${options.clientId}`);
+                    client.publish(topic, "8:30 reservation at Dorsia", {qos: 2});
                 });
-                client.on("error", function (error) {
-                    console.log(error);
-                    assert.strictEqual(error.code, 5);
+                client.on("packetsend", function (packet) {
+                    if (packet.payload === "8:30 reservation at Dorsia") {
+                        messageId = packet.messageId;
+                        assert.ok(messageId !== undefined && messageId !== null);
+                    }
+                });
+                client.on("message", function (topic, payload) {
+                    if (topic === `/${options.username}/devices/${options.clientId}`) {
+                        if (sign === '$') {
+                            let content = JSON.parse(payload.toString());
+                            assert.strictEqual(content.type, "error");
+                            assert.strictEqual(content.handler, "authorizePublish");
+                            assert.strictEqual(content.category, "topic");
+                            assert.strictEqual(content.message, "wildcards are not allowed in topic");
+                            assert.strictEqual(content.messageId, messageId);
+                        }
+                        else {
+                            assert.strictEqual(payload.toString(),`${sign} is not allowed in PUBLISH`);
+                        }
+                        publishConditions[condition] = true;
+                    }
                     client.end();
                 });
             }
 
-            connect("dollarSignRan", "$SYS/");
+            connect("dollarSignRan", "$SYS/", '$');
 
-            connect("poundSignRan", "#");
+            setTimeout(function (){connect("poundSignRan", "#", '#')}, connect_timeout*0.3);
 
-            connect("plusSignRan", '/+');
+            setTimeout(function (){
+                connect("plusSignRan", '/+', '+');}, connect_timeout*0.6);
 
             setTimeout(function (){
                 assert.ok(client !== undefined);
                 client.end();
-                assert.ok(!publishConditions.dollarSignRan);
-                assert.ok(!publishConditions.poundSignRan);
-                assert.ok(!publishConditions.plusSignRan);
+                assert.ok(publishConditions.dollarSignRan);
+                assert.ok(publishConditions.poundSignRan);
+                assert.ok(publishConditions.plusSignRan);
                 done();
             }, connect_timeout);
         });

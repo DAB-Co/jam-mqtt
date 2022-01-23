@@ -1,7 +1,7 @@
 let mqtt = require('mqtt');
 const fs = require("fs");
 const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, ".env.local") });
+require("dotenv").config({path: path.join(__dirname, ".env.local")});
 
 const USERNAME = "2";
 
@@ -9,7 +9,7 @@ const options = {
     host: process.env.ip,
     port: process.env.port,
     clean: false,
-    clientId: `${USERNAME}:uniquev2`,
+    clientId: `${USERNAME}:unique`,
     username: USERNAME,
     password: "api_token",
     //protocol: 'mqtts',
@@ -22,13 +22,18 @@ const options = {
 let client = mqtt.connect(options);
 
 client.on('connect', function () {
-    client.subscribe(`/${USERNAME}/inbox`, {qos:2});
-    client.subscribe(`/${USERNAME}/status`, {qos:0});
+    client.subscribe(`/${USERNAME}/inbox`, {qos: 2});
+    client.subscribe(`/${USERNAME}/devices/${options.clientId}`, {qos: 0});
+});
+
+client.on("packetreceive", function (packet) {
+    console.log("---packet receive---");
+    console.log(packet.messageId, ":", packet.payload);
 });
 
 client.on('message', function (topic, message) {
     let context = message.toString();
-    console.log(topic+": "+context);
+    console.log(topic + ": " + context);
 });
 
 client.on("error", function (error) {

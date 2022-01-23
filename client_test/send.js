@@ -22,15 +22,28 @@ const options = {
 
 const client = mqtt.connect(options);
 
+let sent_messages = [];
+
 client.on('connect', function () {
     let message = {
         "from": from,
         "timestamp": "2021-11-26 06:01:12.685Z",
         "content": "ilk"
     }
-    client.publish(`$/${to}/inbox`, JSON.stringify(message), {qos: 2});
+    client.subscribe(`/${from}/devices/${options.clientId}`);
+    client.publish(`/${to}/inbox`, JSON.stringify(message), {qos: 2});
     console.log("message sent");
-    client.end();
+});
+
+client.on("packetsend", function (packet){
+    console.log("---packet send---");
+    console.log(packet.messageId, ":", packet.payload);
+});
+
+client.on("message", function(topic, payload) {
+    if (topic === `/${from}/devices/${options.clientId}`) {
+        console.log("ERROR:", payload.toString());
+    }
 });
 
 client.on("error", function (error) {

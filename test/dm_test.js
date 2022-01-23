@@ -17,8 +17,8 @@ describe(__filename, function () {
         accounts = setup.register_accounts(database);
     });
 
-    describe("", function() {
-        it("client 1 can't login with wrong api token", function(done) {
+    describe("", function () {
+        it("client 1 can't login with wrong api token", function (done) {
             let options = setup.deepCopy(accounts[1].mqtt_options);
             options.password = "wrong_api_token";
             client1 = mqtt.connect(options);
@@ -106,30 +106,51 @@ describe(__filename, function () {
             let options1 = setup.deepCopy(accounts[1].mqtt_options);
             client1 = mqtt.connect(options1);
             let client1ConnectCallbackRan = false;
+            let messageId = undefined;
+            let client1PacketCallbackRan = false;
+            let client1MessageCallbackRan = false;
+            let message = JSON.stringify({
+                "from": '2',
+                "timestamp": "2021-11-26 06:01:12.685Z",
+                "content": "hello world"
+            });
             client1.on('connect', function () {
-                let message = {
-                    "from": '2',
-                    "timestamp": "2021-11-26 06:01:12.685Z",
-                    "content": "hello world"
-                }
-                client1.publish(`/2/inbox`, JSON.stringify(message), {qos: 2});
+                client1.subscribe(`/1/devices/${options1.clientId}`);
+                client1.publish(`/2/inbox`, message, {qos: 2});
                 client1ConnectCallbackRan = true;
-                client1.end();
+            });
+            client1.on("packetsend", function (packet) {
+                if (packet.payload === message) {
+                    messageId = packet.messageId;
+                    client1PacketCallbackRan = true;
+                }
+            });
+            client1.on("message", function (topic, res) {
+                let message = JSON.parse(res.toString());
+                assert.strictEqual(topic, `/1/devices/${options1.clientId}`);
+                assert.strictEqual(message.type, "error");
+                assert.strictEqual(message.handler, "authorizePublish");
+                assert.strictEqual(message.category, "payload");
+                assert.strictEqual(message.message, "payload sender id mismatch");
+                assert.strictEqual(message.messageId, messageId);
+                client1MessageCallbackRan = true;
             });
             let options2 = setup.deepCopy(accounts[2].mqtt_options);
             client2 = mqtt.connect(options2);
             let client2MessageCallbackRan = false;
+            client2.on("connect", function () {
+                client2.subscribe("/2/inbox");
+            });
             client2.on("message", function (topic, res) {
-                let message = JSON.parse(res.toString());
-                assert.strictEqual(message.from, '2');
-                assert.strictEqual(message.timestamp, "2021-11-26 06:01:12.685Z");
-                assert.strictEqual(message.content, "hello world");
                 client2MessageCallbackRan = true;
             });
             setTimeout(function () {
                 client1.end();
                 client2.end();
+                assert.ok(messageId !== undefined && messageId !== null);
                 assert.ok(!client2MessageCallbackRan);
+                assert.ok(client1PacketCallbackRan);
+                assert.ok(client1MessageCallbackRan);
                 assert.ok(client1ConnectCallbackRan);
                 done();
             }, connect_timeout);
@@ -160,64 +181,94 @@ describe(__filename, function () {
         });
     });
 
-    describe("", function() {
+    describe("", function () {
         it("client 1 can't sub to client 2's inbox to receive client 2's message", function (done) {
             let options = setup.deepCopy(accounts[1].mqtt_options);
             client1 = mqtt.connect(options);
             let connectCallbackRan = false;
             let messageCallbackRan = false;
-            client1.on("connect", function() {
-               client1.subscribe(`/2/inbox`);
-               connectCallbackRan = true;
+            client1.on("connect", function () {
+                client1.subscribe(`/2/inbox`);
+                connectCallbackRan = true;
             });
-            client1.on("message", function() {
-               messageCallbackRan = true;
+            client1.on("message", function (topic, payload) {
+                if (topic === `/1/devices/${options.clientId}`) {
+                    let content = JSON.parse(payload.toString());
+                    assert.strictEqual(content.type, "error");
+                    assert.strictEqual(content.handler, "authorizeSubscribe");
+                    assert.strictEqual(content.category, "/2/inbox");
+                    assert.strictEqual(content.message, "not authorized");
+                    assert.strictEqual(content.messageId, null);
+                    messageCallbackRan = true;
+                }
             });
             setTimeout(function () {
                 client1.end();
                 assert.ok(connectCallbackRan);
-                assert.ok(!messageCallbackRan);
+                assert.ok(messageCallbackRan);
                 done();
             }, connect_timeout);
         });
     });
 
     describe("", function () {
-       it("client 1 can't send messages to client 2 after being blocked", function(done) {
+        it("client 1 can't send messages to client 2 after being blocked", function (done) {
             const userFriendsUtils = new UserFriendsUtils(database);
             userFriendsUtils.blockUser(2, 1);
             let options1 = setup.deepCopy(accounts[1].mqtt_options);
             client1 = mqtt.connect(options1);
             let client1ConnectCallbackRan = false;
-            client1.on("connect", function() {
-                let message = {
-                    "from": '1',
-                    "timestamp": "2021-11-26 06:01:12.685Z",
-                    "content": "hello world"
-                }
-                client1.publish("/2/inbox", JSON.stringify(message), {qos: 2});
+            let client1MessageCallbackRan = false;
+            let client1PacketCallbackRan = false;
+            let messageId = undefined;
+            let message = JSON.stringify({
+                "from": '1',
+                "timestamp": "2021-11-26 06:01:12.685Z",
+                "content": "hello world"
+            });
+            client1.on("connect", function () {
+                client1.publish("/2/inbox", message, {qos: 2});
                 client1ConnectCallbackRan = true;
-                client1.end();
+            });
+            client1.on("packetsend", function (packet) {
+                if (packet.payload === message) {
+                    messageId = packet.messageId;
+                    client1PacketCallbackRan = true;
+                }
+            });
+            client1.on("message", function (topic, payload) {
+                if (topic === `/1/devices/${options1.clientId}`) {
+                    let message = JSON.parse(payload.toString());
+                    assert.strictEqual(message.type, "error");
+                    assert.strictEqual(message.handler, "authorizePublish");
+                    assert.strictEqual(message.category, "friends");
+                    assert.strictEqual(message.message, "not friends with the receiver");
+                    assert.strictEqual(message.messageId, messageId);
+                    client1MessageCallbackRan = true;
+                }
             });
 
-           let options2 = setup.deepCopy(accounts[2].mqtt_options);
-           client2 = mqtt.connect(options2);
-           let client2MessageCallbackRan = false;
-           client2.on("message", function (topic, res) {
-               client2MessageCallbackRan = true;
-           });
-           setTimeout(function() {
-               client1.end();
-               client2.end();
-               assert.ok(client1ConnectCallbackRan);
-               assert.ok(!client2MessageCallbackRan);
-               done();
-           }, connect_timeout);
-       });
+            let options2 = setup.deepCopy(accounts[2].mqtt_options);
+            client2 = mqtt.connect(options2);
+            let client2MessageCallbackRan = false;
+            client2.on("message", function (topic, res) {
+                client2MessageCallbackRan = true;
+            });
+            setTimeout(function () {
+                client1.end();
+                client2.end();
+                assert.ok(messageId !== undefined && messageId !== null);
+                assert.ok(client1PacketCallbackRan);
+                assert.ok(client1ConnectCallbackRan);
+                assert.ok(client1MessageCallbackRan);
+                assert.ok(!client2MessageCallbackRan);
+                done();
+            }, connect_timeout);
+        });
     });
 
-    describe("", function() {
-        it("client 2 can't send messages to client 1 after blocking", function (){
+    describe("", function () {
+        it("client 2 can't send messages to client 1 after blocking", function () {
             // this test won't work due to blocking being one way
             // but why would you want to send messages to someone you blocked?
         });
