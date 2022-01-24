@@ -233,7 +233,8 @@ aedes.authorizePublish = function (client, packet, callback) {
         if (is_connected[client.id]) {
             callback(null);
         } else {
-            if (firebase_admin !== undefined && token !== undefined && token !== null && token !== "") {
+            if (firebase_admin !== undefined && token !== undefined && token !== null && token !== "" && receiver_id in is_connected && is_connected[receiver_id]) {
+                console.log(`${receiver_id} is not connected, sending token`);
                 let token = accountUtils.getNotificationToken(receiver_id);
                 if (token === undefined) {
                     console.log("receiver id token is undefined, is receiver not in database?");
