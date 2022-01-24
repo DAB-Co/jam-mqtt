@@ -255,6 +255,8 @@ aedes.authorizePublish = function (client, packet, callback) {
                     })
                     .catch(error => {
                         console.log(error);
+                        console.log("deleting notification token for receiver");
+                        accountUtils.updateNotificationToken(receiver_id, "");
                     });
             }
             return callback(null);
