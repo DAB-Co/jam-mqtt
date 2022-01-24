@@ -35,6 +35,10 @@ Errors that occur from client's data are written to /user_id/devices/client_id w
   - a new device has connected, logout from this device
 
 #### authorizePublish
+This is the only handler that will not have the messageId field as null since errors thrown are caused by that specific
+message. However, if the message has a qos of 0, the message will not have an id and simply an error will be thrown
+not associated with any message.
+
 - topic
   - not enough topic levels
   - wildcards are not allowed in topic
