@@ -32,7 +32,7 @@ Errors that occur from client's data are written to /user_id/devices/client_id w
   - wrong api token 
 
 - logout
-  - a new device has connected, logout from this device
+  - a new device has connected
 
 #### authorizePublish
 This is the only handler that will not have the messageId field as null since errors thrown are caused by that specific

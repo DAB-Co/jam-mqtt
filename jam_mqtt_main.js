@@ -93,14 +93,14 @@ function errorHandler(callback, success, handler, category, message, returnCode=
 }
 
 /*
-user_id: client_id
+{
+    user_id: {
+        is_connected: false,
+        last_connected: "1:2as8few"
+    }
+}
  */
-let last_connected_device = {};
-
-/*
-client_id: false
- */
-let is_connected = {};
+let connected_users = {};
 
 /*
 client_id: number
@@ -147,19 +147,27 @@ aedes.authenticate = function (client, user_id, api_token, callback) {
     } else {
         if (api_token.toString() === correct_api_token) {
             // user is attempting to connect with a different device
-            if (user_id in last_connected_device && last_connected_device[user_id] !== client.id) {
-                console.log(`${last_connected_device[user_id]} was connected with the same user id, sending logout`);
+            if (user_id in connected_users && connected_users[user_id].last_connected !== client.id && connected_users[user_id].is_connected) {
+                console.log(`${connected_users[user_id].last_connected} was connected with the same user id, sending logout`);
                 let logout_message = JSON.stringify({
                     type: "error",
                     handler: "authenticate",
                     category: "logout",
-                    message: "a new device has connected, logout from this device",
+                    message: "a new device has connected",
                     messageId: null,
                 });
-                send_server_message(`/${user_id}/devices/${last_connected_device[user_id]}`, logout_message);
+                send_server_message(`/${user_id}/devices/${connected_users[user_id].last_connected}`, logout_message);
             }
-            is_connected[client.id] = true;
-            last_connected_device[user_id] = client.id;
+            if (user_id in connected_users) {
+                connected_users[user_id].is_connected = true;
+                connected_users[user_id].last_connected = client.id;
+            }
+            else {
+                connected_users[user_id] = {
+                    is_connected: true,
+                    last_connected: client.id,
+                }
+            }
             console.log(`connected: ${user_id}: ${client.id}`);
             failed_attempt_count[client.id] = 0;
             return callback(null, true);
@@ -173,7 +181,13 @@ aedes.authenticate = function (client, user_id, api_token, callback) {
 
 aedes.on("clientDisconnect", function (client) {
     console.log("---client disconnect---");
-    is_connected[client.id] = false;
+    let user_id = client.id.split(':')[0];
+    if (user_id in connected_users) {
+        connected_users[user_id].is_connected = false;
+    }
+    else {
+        console.log("ERROR!!! THIS USER WAS NOT REGISTERED AS CONNECTED!");
+    }
     console.log(client.id, "disconnected");
 });
 
@@ -230,12 +244,12 @@ aedes.authorizePublish = function (client, packet, callback) {
 
     let receiverFriends = userFriendsUtils.getFriends(receiver_id);
     if (receiverFriends !== undefined && user_id in receiverFriends && !receiverFriends[user_id]["blocked"]) {
-        if (is_connected[client.id]) {
-            callback(null);
+        if (receiver_id in connected_users && !connected_users[receiver_id].is_connected) {
+            return callback(null);
         } else {
-            if (firebase_admin !== undefined && token !== undefined && token !== null && token !== "" && receiver_id in is_connected && is_connected[receiver_id]) {
+            let token = accountUtils.getNotificationToken(receiver_id);
+            if (firebase_admin !== undefined && token !== undefined && token !== null && token !== "") {
                 console.log(`${receiver_id} is not connected, sending token`);
-                let token = accountUtils.getNotificationToken(receiver_id);
                 if (token === undefined) {
                     console.log("receiver id token is undefined, is receiver not in database?");
                     return errorHandler(callback, undefined,"authorizePublish", "notification_token", "fatal database error", 3, packet.messageId);
@@ -259,8 +273,8 @@ aedes.authorizePublish = function (client, packet, callback) {
                         accountUtils.updateNotificationToken(receiver_id, "");
                     });
             }
-            return callback(null);
         }
+        return callback(null);
     } else {
         console.log(user_id, "not friends with", receiver_id);
         return errorHandler(callback, undefined, "authorizePublish", "friends", "not friends with the receiver", 5, packet.messageId);
