@@ -31,7 +31,7 @@ describe(__filename, function () {
                     assert.strictEqual(content.type, "error");
                     assert.strictEqual(content.handler, "authenticate");
                     assert.strictEqual(content.category, "logout");
-                    assert.strictEqual(content.message, "a new device has connected, logout from this device");
+                    assert.strictEqual(content.message, "a new device has connected");
                     assert.strictEqual(content.messageId, null);
                     client1StatusMessageReceived = true;
                     client1.end();
