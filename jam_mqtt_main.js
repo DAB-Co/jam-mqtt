@@ -244,16 +244,13 @@ aedes.authorizePublish = function (client, packet, callback) {
 
     let receiverFriends = userFriendsUtils.getFriends(receiver_id);
     if (receiverFriends !== undefined && user_id in receiverFriends && !receiverFriends[user_id]["blocked"]) {
-        if (receiver_id in connected_users && !connected_users[receiver_id].is_connected) {
+        if (receiver_id in connected_users && connected_users[receiver_id].is_connected) {
             return callback(null);
         } else {
             let token = accountUtils.getNotificationToken(receiver_id);
+            console.log(`${receiver_id} is not connected`);
             if (firebase_admin !== undefined && token !== undefined && token !== null && token !== "") {
-                console.log(`${receiver_id} is not connected, sending token`);
-                if (token === undefined) {
-                    console.log("receiver id token is undefined, is receiver not in database?");
-                    return errorHandler(callback, undefined,"authorizePublish", "notification_token", "fatal database error", 3, packet.messageId);
-                }
+                console.log("found notification token, sending notification");
                 const message = {
                     "data": {
                         "fromId": user_id,
