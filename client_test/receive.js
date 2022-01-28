@@ -3,14 +3,14 @@ const fs = require("fs");
 const path = require("path");
 require("dotenv").config({path: path.join(__dirname, ".env.local")});
 
-const USERNAME = "2";
+const user_id = process.env.to_id;
 
 const options = {
     host: process.env.ip,
     port: process.env.port,
     clean: false,
-    clientId: `${USERNAME}:unique`,
-    username: USERNAME,
+    clientId: `${user_id}:unique`,
+    username: user_id,
     password: "api_token",
     //protocol: 'mqtts',
     //rejectUnauthorized: false,
@@ -22,13 +22,13 @@ const options = {
 let client = mqtt.connect(options);
 
 client.on('connect', function () {
-    client.subscribe(`/${USERNAME}/inbox`, {qos: 2});
-    client.subscribe(`/${USERNAME}/devices/${options.clientId}`, {qos: 0});
+    client.subscribe(`/${user_id}/inbox`, {qos: 2});
+    client.subscribe(`/${user_id}/devices/${options.clientId}`, {qos: 0});
 });
 
 client.on("packetreceive", function (packet) {
     console.log("---packet receive---");
-    console.log(packet.messageId, ":", packet.payload);
+    console.log(packet);
 });
 
 client.on('message', function (topic, message) {

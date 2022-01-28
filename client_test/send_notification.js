@@ -3,17 +3,14 @@ const fs = require('fs');
 const firebase_admin = require("firebase-admin");
 require("dotenv").config({ path: path.join(__dirname, ".env.local") });
 
-const from_username = process.env.from_account_username;
-const to_username = process.env.to_account_username;
+const fromUserId = process.env.from_id;
+const toUserId = process.env.to_id;
 
 const Database = require("@dab-co/jam-sqlite").Database;
 const database = new Database(process.env.db_path);
 
 const AccountUtils = require("@dab-co/jam-sqlite").Utils.AccountUtils;
 const accountUtils = new AccountUtils(database);
-
-const fromUserId = accountUtils.getIdByUsername(from_username);
-const toUserId = accountUtils.getIdByUsername(to_username);
 
 const firebase_token = accountUtils.getNotificationToken(toUserId);
 
