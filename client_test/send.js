@@ -28,12 +28,11 @@ let message = {
     "content": "ilk"
 }
 
-setInterval(function () {
-    client.publish(`/${to}/inbox`, JSON.stringify(message), {qos: 2});
-}, 10000);
-
 client.on('connect', function () {
     client.subscribe(`/${from}/devices/${options.clientId}`);
+    setInterval(function () {
+        client.publish(`/${to}/inbox`, JSON.stringify(message), {qos: 2});
+    }, 100);
 });
 
 client.on("packetsend", function (packet) {
