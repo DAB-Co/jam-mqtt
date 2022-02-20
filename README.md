@@ -1,5 +1,19 @@
 # @dab-co/jam-mqtt
 
+## Installing npm dependencies
+
+### With .npmrc
+- Generate a token with repo and read:packages scopes
+- do ```READ_PACKAGE_API_KEY=<your token>``` to set it as environment variable
+- ```npm install```
+
+### Without .npmrc on root
+- Use ```npm --registry=https://npm.pkg.github.com adduser```
+  - Generate a token with repo and read:packages scopes, don't enter your github password.
+- And then do ```npm config set @dab-co:registry https://npm.pkg.github.com```
+- Run npm install
+
+
 ## Errors
 Errors that occur from client's data are written to /user_id/devices/client_id with qos 0.
 
