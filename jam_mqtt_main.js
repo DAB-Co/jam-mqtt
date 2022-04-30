@@ -214,7 +214,7 @@ aedes.authorizePublish = function (client, packet, callback) {
     console.log("publishing content...");
     console.log("sender_id: " + user_id);
     console.log("receiver_id: " + receiver_id);
-    console.log("content:", packet.payload.toString());
+    // console.log("content:", packet.payload.toString());
 
     // wildcards are not allowed
     if (packet.topic.indexOf('$') !== -1 || packet.topic.indexOf('#') !== -1 || packet.topic.indexOf('+') !== -1) {
