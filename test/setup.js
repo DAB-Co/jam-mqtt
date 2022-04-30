@@ -51,7 +51,6 @@ function register_accounts(database) {
             }
         };
         let query_res = accountUtils.addUser(user.email, user.username, user.password, user.api_token);
-        userFriendsUtils.addUser(i);
         accounts[query_res.lastInsertRowid] = user;
     }
     userFriendsUtils.addFriend(1, 2);
