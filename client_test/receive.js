@@ -12,8 +12,8 @@ const options = {
     clientId: `${user_id}:unique`,
     username: user_id,
     password: "api_token",
-    //protocol: 'mqtts',
-    //rejectUnauthorized: false,
+    protocol: 'tls',
+    rejectUnauthorized: false,
     //cert: fs.readFileSync(process.env.client_0_cert),
     //key:  fs.readFileSync(process.env.client_0_key),
     //ca: fs.readFileSync(process.env.ca_cert)
@@ -24,6 +24,11 @@ let client = mqtt.connect(options);
 client.on('connect', function () {
     client.subscribe(`/${user_id}/inbox`, {qos: 2});
     client.subscribe(`/${user_id}/devices/${options.clientId}`, {qos: 0});
+    //client.end();
+});
+
+client.on("subscribe", function() {
+    //client.end();
 });
 
 client.on("packetreceive", function (packet) {

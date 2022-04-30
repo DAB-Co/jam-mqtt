@@ -22,6 +22,8 @@ const AccountUtils = require("@dab-co/jam-sqlite").Utils.AccountUtils;
 const accountUtils = new AccountUtils(database);
 const UserFriendsUtils = require("@dab-co/jam-sqlite").Utils.UserFriendsUtils;
 const userFriendsUtils = new UserFriendsUtils(database);
+const UserDevicesUtils = require("@dab-co/jam-sqlite").Utils.UserDevicesUtils;
+const userDevicesUtils = new UserDevicesUtils(database);
 
 const port = process.env.port;
 
@@ -45,7 +47,7 @@ if (argv.tls) {
 
     server = require('tls').createServer(options, aedes.handle);
 } else {
-    server = require('net').createServer(aedes.handle)
+    server = require('net').createServer(aedes.handle);
 }
 
 function send_server_message(topic, message) {
@@ -306,3 +308,33 @@ aedes.authorizeSubscribe = function (client, sub, callback) {
 server.listen(port, function () {
     console.log('Server started and listening on port ', port);
 });
+
+const mqtt = require('mqtt');
+
+let devices = userDevicesUtils.getAllDeviceIds();
+for (let i=0; i<devices.length; i++) {
+    const user_id = devices[i].user_id;
+    const device_id = devices[i].device_id;
+    let options = {
+        host: "localhost",
+        port: process.env.port,
+        clean: false,
+        clientId: `${user_id}:${device_id}`,
+        username: user_id,
+        password: accountUtils.getApiToken(user_id),
+        protocol: 'mqtt',
+        //rejectUnauthorized: false,
+    };
+    if (argv.tls) {
+        options.protocol = "tls";
+    }
+
+    let client = mqtt.connect(options);
+
+    client.on('connect', function () {
+        client.subscribe(`/${user_id}/inbox`, {qos: 1});
+        client.subscribe(`/${user_id}/devices/${options.clientId}`, {qos: 0});
+        client.end();
+    });
+
+}

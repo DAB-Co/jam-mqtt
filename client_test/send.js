@@ -13,8 +13,8 @@ const options = {
     clientId: `${from}:unique${from}`,
     username: from,
     password: "api_token",
-    //protocol: 'mqtts',
-    //rejectUnauthorized: false,
+    protocol: 'tls',
+    rejectUnauthorized: false,
     //cert: fs.readFileSync(process.env.client_1_cert),
     //key:  fs.readFileSync(process.env.client_1_key),
     //ca: fs.readFileSync(process.env.ca_cert)
@@ -30,19 +30,22 @@ let message = {
 
 client.on('connect', function () {
     client.subscribe(`/${from}/devices/${options.clientId}`);
-    setInterval(function () {
+    client.publish(`/${to}/inbox`, JSON.stringify(message), {qos: 2});
+    client.end();
+    /*setInterval(function () {
         client.publish(`/${to}/inbox`, JSON.stringify(message), {qos: 2});
     }, 100);
+     */
 });
 
 client.on("packetsend", function (packet) {
-    console.log("---packet send---");
-    console.log(packet);
+    //console.log("---packet send---");
+    //console.log(packet);
 });
 
 client.on("packetreceive", function (packet) {
-    console.log("---packet receive---");
-    console.log(packet);
+    //console.log("---packet receive---");
+    //console.log(packet);
 })
 
 client.on("message", function (topic, payload) {
