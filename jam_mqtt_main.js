@@ -149,7 +149,7 @@ aedes.authenticate = function (client, user_id, api_token, callback) {
     } else {
         if (api_token.toString() === correct_api_token) {
             // user is attempting to connect with a different device
-            if (user_id in connected_users && connected_users[user_id].last_connected !== client.id && connected_users[user_id].is_connected) {
+            if (user_id in connected_users && connected_users[user_id].is_connected && connected_users[user_id].last_connected !== client.id) {
                 console.log(`${connected_users[user_id].last_connected} was connected with the same user id, sending logout`);
                 let logout_message = JSON.stringify({
                     type: "error",
