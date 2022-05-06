@@ -315,6 +315,10 @@ let devices = userDevicesUtils.getAllDeviceIds();
 for (let i=0; i<devices.length; i++) {
     const user_id = devices[i].user_id;
     const device_id = devices[i].device_id;
+    if (user_id === undefined || user_id === null || user_id === ''
+        || device_id === undefined || device_id === null || device_id === '') {
+        continue;
+    }
     let options = {
         host: "localhost",
         port: process.env.port,
