@@ -324,7 +324,7 @@ for (let i=0; i<devices.length; i++) {
         port: process.env.port,
         clean: false,
         clientId: `${user_id}:${device_id}`,
-        username: [user_id],
+        username: user_id,
         password: accountUtils.getApiToken(user_id),
         protocol: 'mqtt',
         //rejectUnauthorized: false,
