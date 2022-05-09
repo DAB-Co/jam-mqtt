@@ -325,7 +325,7 @@ server.listen(port, function () {
             username: user_id.toString(),
             password: accountUtils.getApiToken(user_id),
             protocol: 'mqtt',
-            //rejectUnauthorized: false,
+            rejectUnauthorized: false,
         };
         if (argv.tls) {
             options.protocol = "tls";
@@ -339,6 +339,10 @@ server.listen(port, function () {
             client.end();
         });
 
+        client.on("error", function (error) {
+            console.log("error subbing", options.clientId);
+            console.log(error);
+        });
     }
 });
 
