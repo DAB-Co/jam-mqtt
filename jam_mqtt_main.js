@@ -328,8 +328,8 @@ server.listen(port, function () {
         };
         if (argv.tls) {
             options.protocol = "tls";
-            //options.rejectUnauthorized = false;
-            options.ca = fs.readFileSync(process.env.tls_ca);
+            options.rejectUnauthorized = false;
+            //options.ca = fs.readFileSync(process.env.tls_ca);
         }
 
         let client = mqtt.connect(options);
