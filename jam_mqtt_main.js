@@ -329,7 +329,7 @@ server.listen(port, function () {
         if (argv.tls) {
             options.protocol = "tls";
             //options.rejectUnauthorized = false;
-            options.ca = process.env.tls_ca;
+            options.ca = fs.readFileSync(process.env.tls_ca);
         }
 
         let client = mqtt.connect(options);
@@ -343,6 +343,7 @@ server.listen(port, function () {
         client.on("error", function (error) {
             console.log("error subbing", options.clientId);
             console.log(error);
+            client.end();
         });
     }
 });
