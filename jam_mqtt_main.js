@@ -325,10 +325,11 @@ server.listen(port, function () {
             username: user_id.toString(),
             password: accountUtils.getApiToken(user_id),
             protocol: 'mqtt',
-            rejectUnauthorized: false,
         };
         if (argv.tls) {
             options.protocol = "tls";
+            //options.rejectUnauthorized = false;
+            options.ca = process.env.tls_ca;
         }
 
         let client = mqtt.connect(options);
