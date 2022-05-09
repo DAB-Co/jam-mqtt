@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require("path");
+const mqtt = require("mqtt");
 const aedes = require('aedes')();
 require("dotenv").config({path: path.join(__dirname, ".env.local")});
 const argv = require("yargs")(process.argv.slice(2))
@@ -307,38 +308,37 @@ aedes.authorizeSubscribe = function (client, sub, callback) {
 
 server.listen(port, function () {
     console.log('Server started and listening on port ', port);
+
+    let devices = userDevicesUtils.getAllDeviceIds();
+    for (let i=0; i<devices.length; i++) {
+        const user_id = devices[i].user_id;
+        const device_id = devices[i].device_id;
+        if (user_id === undefined || user_id === null || user_id === ''
+            || device_id === undefined || device_id === null || device_id === '') {
+            continue;
+        }
+        let options = {
+            host: "localhost",
+            port: process.env.port,
+            clean: false,
+            clientId: `${user_id}:${device_id}`,
+            username: user_id.toString(),
+            password: accountUtils.getApiToken(user_id),
+            protocol: 'mqtt',
+            //rejectUnauthorized: false,
+        };
+        if (argv.tls) {
+            options.protocol = "tls";
+        }
+
+        let client = mqtt.connect(options);
+
+        client.on('connect', function () {
+            client.subscribe(`/${user_id}/inbox`, {qos: 1});
+            client.subscribe(`/${user_id}/devices/${options.clientId}`, {qos: 0});
+            client.end();
+        });
+
+    }
 });
 
-const mqtt = require('mqtt');
-
-let devices = userDevicesUtils.getAllDeviceIds();
-for (let i=0; i<devices.length; i++) {
-    const user_id = devices[i].user_id;
-    const device_id = devices[i].device_id;
-    if (user_id === undefined || user_id === null || user_id === ''
-        || device_id === undefined || device_id === null || device_id === '') {
-        continue;
-    }
-    let options = {
-        host: "localhost",
-        port: process.env.port,
-        clean: false,
-        clientId: `${user_id}:${device_id}`,
-        username: user_id,
-        password: accountUtils.getApiToken(user_id),
-        protocol: 'mqtt',
-        //rejectUnauthorized: false,
-    };
-    if (argv.tls) {
-        options.protocol = "tls";
-    }
-
-    let client = mqtt.connect(options);
-
-    client.on('connect', function () {
-        client.subscribe(`/${user_id}/inbox`, {qos: 1});
-        client.subscribe(`/${user_id}/devices/${options.clientId}`, {qos: 0});
-        client.end();
-    });
-
-}
