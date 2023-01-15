@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/DAB-Co/jam-mqtt#readme",
   "dependencies": {
-    "@dab-co/jam-sqlite": "^8.2.0",
+    "@dab-co/jam-sqlite": "^8.6.0",
     "aedes": "^0.46.1",
     "dotenv": "^10.0.0",
     "firebase-admin": "^10.0.1",
