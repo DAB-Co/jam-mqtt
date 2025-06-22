@@ -255,22 +255,19 @@ aedes.authorizePublish = function (client, packet, callback) {
             if (firebase_admin !== undefined && token !== undefined && token !== null && token !== "") {
                 console.log("found notification token, sending notification");
                 const message = {
+                    token: token,
                     "data": {
                         "fromId": user_id,
                     },
                 };
-                const options = {
-                    priority: "high",
-                    timeToLive: 60 * 60 * 24,
-                };
-                firebase_admin.messaging().sendToDevice(token, message, options)
+                firebase_admin.messaging().send(message)
                     .then(response => {
                         console.log(response);
                     })
                     .catch(error => {
                         console.log(error);
-                        console.log("deleting notification token for receiver");
-                        accountUtils.updateNotificationToken(receiver_id, null);
+                        // console.log("deleting notification token for receiver");
+                        // accountUtils.updateNotificationToken(receiver_id, null);
                     });
             }
         }
